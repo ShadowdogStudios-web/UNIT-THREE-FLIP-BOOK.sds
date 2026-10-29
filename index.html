@@ -93,19 +93,33 @@ body{background:radial-gradient(120% 120% at 50% -10%,#2a2016,#1c1510 70%);color
 .pg .scene{text-align:center;color:var(--navy);letter-spacing:.5em;margin:1.2em 0;font-size:.88em}
 .pg h3{color:var(--navy);font-size:1.1em;margin:1.3em 0 .4em}
 .pg p{margin:.65em 0;text-align:justify;-webkit-hyphens:auto;hyphens:auto}
+.pg p.drop::first-letter{float:left;font-family:var(--serif);font-weight:bold;font-size:3.1em;line-height:.82;padding:6px 9px 0 0;color:var(--maroon)}
 .pg .bth{background:#f3ead9;border:1px solid #d9bfa6;border-left:6px solid var(--maroon);padding:11px 13px;margin:1em 0;font-size:.9em;line-height:1.55}
 .pg .bth .bh{color:var(--maroon);font-weight:bold;letter-spacing:.05em;font-size:.82em;margin:0 0 .35em}
 .pg .bth p{margin:.4em 0;text-align:left}
 .pg mark.hl{background:#ffe066;color:#111;border-radius:2px}
 .pg .reading{background:rgba(79,157,214,.18);box-shadow:0 0 0 2px rgba(79,157,214,.3);border-radius:3px}
-/* cover + colophon */
-.page.cover .pg,.page.colophon .pg{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 10%}
-.page.cover .pg .content,.page.colophon .pg .content{height:auto;overflow:visible}
-.cover .k{font:bold 12px/1 var(--sans);letter-spacing:.3em;color:var(--maroon)}
-.cover h1{font-family:var(--serif);color:var(--navy);font-size:2.2em;line-height:1.1;margin:.3em 0 .1em;font-weight:bold}
-.cover .yr{font:bold 13px/1 var(--sans);letter-spacing:.3em;color:var(--muted);margin-top:.4em}
-.cover .mk{margin:22px 0}
-.cover .ft{margin-top:24px;font:italic .9em var(--serif);color:var(--muted)}
+/* ---- hardcover cover ---- */
+.page.cover{background:#14233a;position:relative}
+.page.cover .pg{padding:0;overflow:hidden}
+.cover .cbg{position:absolute;inset:0;background:
+  radial-gradient(120% 85% at 50% 8%, rgba(201,162,39,.12), rgba(0,0,0,0) 55%),
+  repeating-linear-gradient(135deg, rgba(255,255,255,.035) 0 2px, rgba(0,0,0,0) 2px 10px),
+  linear-gradient(160deg,#1e3250,#0e1a2d)}
+.cover .cbg::after{content:"";position:absolute;inset:0;box-shadow:inset 0 0 120px rgba(0,0,0,.6)}
+.cover .cspine{position:absolute;left:0;top:0;bottom:0;width:17px;background:linear-gradient(90deg,#8a2525,#5c1414);box-shadow:inset -3px 0 7px rgba(0,0,0,.55),3px 0 10px rgba(0,0,0,.45);z-index:2}
+.cover .plate{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:76%;background:rgba(250,245,236,.96);padding:32px 24px 26px;text-align:center;box-shadow:0 20px 55px rgba(0,0,0,.55);z-index:3}
+.cover .plate .pk{font:bold 11.5px/1 var(--sans);letter-spacing:.24em;color:var(--maroon)}
+.cover .plate .prule{width:46px;height:2px;background:var(--maroon);margin:10px auto}
+.cover .plate .pu{font:600 12.5px/1 var(--sans);letter-spacing:.32em;color:#6a6055;margin-bottom:4px}
+.cover .plate h1{font-family:var(--serif);color:#1a1a1a;font-size:1.95em;line-height:1.08;margin:.08em 0;font-weight:bold}
+.cover .plate .pyr{font-family:var(--serif);font-style:italic;color:var(--maroon);font-size:1.12em;margin-top:6px}
+.cover .plate .prule2{width:68%;height:1px;background:#cdbfa8;margin:13px auto}
+.cover .plate .psub{font-family:var(--serif);color:#4a4542;font-size:.9em;line-height:1.42}
+.cover .plate .pby{margin-top:15px;font:600 9px/1.5 var(--sans);letter-spacing:.1em;color:#8a7f70}
+/* colophon */
+.page.colophon .pg{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 12%}
+.page.colophon .pg .content{height:auto;overflow:visible}
 .colophon h4{color:var(--navy);font-family:var(--serif);margin:0 0 10px;font-size:1.1em}
 .colophon p{font-size:.8em;color:var(--muted);line-height:1.6;margin:.5em 0}
 /* toolbar + panels */
@@ -635,7 +649,7 @@ body{background:radial-gradient(120% 120% at 50% -10%,#2a2016,#1c1510 70%);color
   function saveBM(){try{localStorage.setItem(BMKEY,JSON.stringify(bm));}catch(e){}}
 
   // ---- pagination ----
-  var pages=[], curContent=null, pageNum=0, curChapShort='';
+  var pages=[], curContent=null, pageNum=0, curChapShort='', pendingDrop=false;
   function newPage(opts){
     opts=opts||{};
     var p=el('page'+(opts.cls?(' '+opts.cls):'')); var pg=el('pg');
@@ -653,29 +667,39 @@ body{background:radial-gradient(120% 120% at 50% -10%,#2a2016,#1c1510 70%);color
     curContent.appendChild(node);
     if(!fits() && curContent.childNodes.length>1){ curContent.removeChild(node); newPage(); curContent.appendChild(node); }
   }
-  function addSplit(node){
+  function addSplit(node, drop){
     var tag=node.tagName.toLowerCase(), cls=node.className, words=(node.textContent||'').split(/\s+/).filter(Boolean);
     if(!words.length) return;
-    var cur=document.createElement(tag); if(cls)cur.className=cls; curContent.appendChild(cur); var buf='';
+    var firstPiece=true;
+    function mk(){ var c=document.createElement(tag); var cc=cls||''; if(firstPiece&&drop)cc=(cc?cc+' ':'')+'drop'; if(cc)c.className=cc; firstPiece=false; return c; }
+    var cur=mk(); curContent.appendChild(cur); var buf='';
     for(var i=0;i<words.length;i++){
       var prev=buf; buf=buf?(buf+' '+words[i]):words[i]; cur.textContent=buf;
       if(!fits()){
-        if(prev!==''){ cur.textContent=prev; newPage(); cur=document.createElement(tag); if(cls)cur.className=cls; curContent.appendChild(cur); buf=words[i]; cur.textContent=buf; }
-        else if(curContent.childNodes.length>1){ // first word won't fit: carry any orphan heading(s) to next page
+        if(prev!==''){ cur.textContent=prev; newPage(); cur=mk(); curContent.appendChild(cur); buf=words[i]; cur.textContent=buf; }
+        else if(curContent.childNodes.length>1){
           curContent.removeChild(cur); var carried=[];
           while(lastIsHeading()){ carried.unshift(curContent.lastElementChild); curContent.removeChild(curContent.lastElementChild); }
           newPage(); carried.forEach(function(h){ curContent.appendChild(h); });
-          cur=document.createElement(tag); if(cls)cur.className=cls; curContent.appendChild(cur); buf=words[i]; cur.textContent=buf;
+          cur=mk(); curContent.appendChild(cur); buf=words[i]; cur.textContent=buf;
         }
       }
     }
   }
-  function addBlock(node){ if(node.tagName==='P'||node.classList.contains('epi')) addSplit(node); else addWhole(node); }
+  function addBlock(node){
+    if(node.tagName==='P'){ var d=pendingDrop; if(d)pendingDrop=false; addSplit(node,d); }
+    else if(node.classList.contains('epi')){ addSplit(node,false); }
+    else addWhole(node);
+  }
   function buildCover(){
-    var p=newPage({cls:'cover'});
-    curContent.innerHTML='<div class="k">PROMISE &amp; PRACTICE &middot; UNIT 3</div><h1>Industry, Immigration &amp; Reform</h1><div class="yr">1877 &ndash; 1919</div>'+
-      '<div class="mk"><svg width="118" height="76" viewBox="0 0 120 78" fill="none"><g stroke="#1F3A5F" stroke-width="2.4"><rect x="10" y="40" width="16" height="30"/><rect x="30" y="28" width="16" height="42"/><rect x="50" y="18" width="16" height="52"/><rect x="74" y="34" width="14" height="36"/><rect x="92" y="24" width="16" height="46"/></g><circle cx="100" cy="16" r="9" stroke="#C9A227" stroke-width="2.4"/><path d="M100 7v-4M100 29v-4M89 16h-4M115 16h-4M92.2 8.2l-2.8-2.8M110.6 26.6l-2.8-2.8M92.2 23.8l-2.8 2.8M110.6 5.4l-2.8 2.8" stroke="#C9A227" stroke-width="2"/></svg></div>'+
-      '<div class="ft">An American history, told close to home</div>';
+    var p=el('page cover'); var pg=el('pg'); p.appendChild(pg); book.appendChild(p); pages.push(p); pageHdr.push('');
+    pg.innerHTML='<div class="cbg"></div><div class="cspine"></div><div class="plate">'+
+      '<div class="pk">PROMISE &amp; PRACTICE</div><div class="prule"></div>'+
+      '<div class="pu">UNIT THREE</div>'+
+      '<h1>Industry,<br>Immigration<br>&amp; Reform</h1>'+
+      '<div class="pyr">1877 &ndash; 1919</div><div class="prule2"></div>'+
+      '<div class="psub">The age that built modern America<br>&mdash; and the people who paid for it</div>'+
+      '<div class="pby">AN ANTI-TEXTBOOK &middot; SHADOWDOG DIGITAL STUDIOS</div></div>';
   }
   function buildColophon(){
     var p=newPage({cls:'colophon'});
@@ -691,7 +715,7 @@ body{background:radial-gradient(120% 120% at 50% -10%,#2a2016,#1c1510 70%);color
         var c=CH.filter(function(x){return x.a===b.id;})[0];
         curChapShort = c?c.short:curChapShort;
         if(curContent.childNodes.length>0) newPage();
-        chapterPage[b.id]=pages.length-1;
+        chapterPage[b.id]=pages.length-1; pendingDrop=true;
       }
       addBlock(b.cloneNode(true));
     });
