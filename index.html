@@ -5,126 +5,145 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Unit 3 Flip-Book &mdash; Promise &amp; Practice</title>
 <style>
-  :root{
-    --paper:#faf5ec; --ink:#20242b; --muted:#6b6256;
-    --navy:#1F3A5F; --maroon:#7A2E2E; --gold:#C9A227;
-    --accent:#4f9dd6; --accent2:#86c1ea;
-    --ui:#f4ede2; --uimut:#b6a991; --uipanel:rgba(28,21,16,.92);
-    --fs:19px;
-    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    --serif:Georgia,"Times New Roman",serif;
-  }
-  *{box-sizing:border-box}
-  html,body{margin:0;height:100%}
-  body{background:radial-gradient(120% 120% at 50% -10%,#2a2016,#1c1510 70%);color:var(--ui);
-       font-family:var(--sans);overflow:hidden;-webkit-font-smoothing:antialiased}
-  /* progress */
-  .progress{position:fixed;top:0;left:0;height:3px;width:0;z-index:35;
-            background:linear-gradient(90deg,var(--accent),var(--gold));transition:width .35s}
-  .hint{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:30;
-        background:var(--uipanel);color:var(--uimut);border:1px solid rgba(255,255,255,.1);
-        border-radius:999px;padding:7px 16px;font:600 12.5px/1 var(--sans);transition:opacity .5s}
-  .hint b{color:var(--accent2)}
-  .stage{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
-  .book{position:relative;background:var(--paper);
-        box-shadow:0 30px 70px rgba(0,0,0,.55),0 2px 0 rgba(0,0,0,.4);border-radius:4px;padding:var(--mv) var(--mh);
-        touch-action:pan-y;user-select:none}
-  .book::after{content:"";position:absolute;top:6px;bottom:6px;left:50%;width:34px;transform:translateX(-50%);
-        background:linear-gradient(90deg,rgba(0,0,0,0),rgba(60,45,30,.16) 42%,rgba(60,45,30,.28) 50%,rgba(60,45,30,.16) 58%,rgba(0,0,0,0));
-        pointer-events:none;z-index:4}
-  .viewport{overflow:hidden;position:relative}
-  .flow{height:100%;column-fill:auto;color:var(--ink);font-family:var(--serif);font-size:var(--fs);line-height:1.68;
-        transition:transform .5s cubic-bezier(.22,.61,.36,1);will-change:transform}
-  /* page furniture (in the cream margins) */
-  .furn{position:absolute;z-index:3;pointer-events:none;color:var(--navy);text-align:center;
-        font:600 10.5px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;opacity:.72}
-  .pn{font:600 11px/1 var(--serif);letter-spacing:.04em;text-transform:none;color:var(--muted);opacity:.85}
-  /* content styling */
-  .flow .kick{break-before:column;margin:0 0 4px;font:bold 12px/1.3 var(--sans);letter-spacing:.22em;color:var(--maroon)}
-  .flow h2.ch{margin:.05em 0 .1em;color:var(--navy);font-size:1.5em;line-height:1.18;font-family:var(--serif)}
-  .flow .sub{font-style:italic;color:var(--muted);font-size:1.03em;margin:0 0 1em}
-  .flow .epi{text-align:center;font-style:italic;color:var(--muted);font-size:.9em;margin:1em 6%}
-  .flow .scene{text-align:center;color:var(--navy);letter-spacing:.5em;margin:1.3em 0;font-size:.9em}
-  .flow h3{color:var(--navy);font-size:1.12em;margin:1.5em 0 .4em;font-family:var(--serif)}
-  .flow p{margin:.7em 0;text-align:justify;-webkit-hyphens:auto;hyphens:auto}
-  .flow .bth{background:#f3ead9;border:1px solid #d9bfa6;border-left:7px solid var(--maroon);
-        padding:12px 15px;margin:1.2em 0;font-size:.92em;line-height:1.6;break-inside:avoid}
-  .flow .bth .bh{color:var(--maroon);font-weight:bold;letter-spacing:.05em;font-size:.85em;margin:0 0 .4em}
-  .flow .bth p{margin:.45em 0;text-align:left}
-  .flow mark.hl{background:#ffe066;color:#111;border-radius:2px}
-  .flow .reading{background:rgba(79,157,214,.16);box-shadow:0 0 0 2px rgba(79,157,214,.28);border-radius:3px}
-  .flow .cover,.flow .colophon{height:var(--ph);break-inside:avoid;break-after:column;
-        display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 8%}
-  .flow .colophon{break-before:column}
-  .flow .cover .k{font:bold 12px/1 var(--sans);letter-spacing:.3em;color:var(--maroon)}
-  .flow .cover h1{font-family:var(--serif);color:var(--navy);font-size:2.3em;line-height:1.1;margin:.3em 0 .1em;font-weight:bold}
-  .flow .cover .yr{font:bold 13px/1 var(--sans);letter-spacing:.3em;color:var(--muted);margin-top:.4em}
-  .flow .cover .mark{margin:22px 0}
-  .flow .cover .foot{margin-top:26px;font:italic .9em var(--serif);color:var(--muted)}
-  .flow .colophon h4{color:var(--navy);font-family:var(--serif);margin:0 0 10px;font-size:1.1em}
-  .flow .colophon p{font-size:.82em;color:var(--muted);line-height:1.6;margin:.5em 0;text-align:center}
-  /* toolbar */
-  .bar{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:30;display:flex;align-items:center;gap:3px;
-       background:var(--uipanel);border:1px solid rgba(255,255,255,.1);border-radius:999px;padding:7px 9px;
-       box-shadow:0 10px 30px rgba(0,0,0,.45);max-width:95vw}
-  .bar button{border:none;background:none;color:var(--ui);font:700 13px/1 var(--sans);padding:9px 10px;border-radius:999px;cursor:pointer;white-space:nowrap}
-  .bar button:hover{background:rgba(255,255,255,.08)}
-  .bar button.accent{color:var(--accent2)}
-  .bar button.on{background:var(--accent);color:#10222f}
-  .bar button.star.marked{color:var(--gold)}
-  .bar .sep{width:1px;height:20px;background:rgba(255,255,255,.14);margin:0 3px}
-  .bar .pg{font:700 12.5px/1 var(--sans);color:var(--uimut);padding:0 8px;white-space:nowrap;font-variant-numeric:tabular-nums}
-  /* panels */
-  .panel{position:fixed;z-index:40;top:0;bottom:0;width:min(360px,86vw);background:#241c14;
-         border-right:1px solid rgba(255,255,255,.12);box-shadow:30px 0 60px rgba(0,0,0,.5);
-         left:0;transform:translateX(-102%);transition:transform .32s;padding:20px 18px;overflow:auto}
-  .panel.open{transform:none}
-  .panel h3{margin:14px 0 10px;font:800 13px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--accent2)}
-  .panel h3:first-of-type{margin-top:4px}
-  .panel ol{list-style:none;margin:0;padding:0}
-  .panel li{margin:0 0 2px}
-  .panel li a{display:block;color:var(--ui);text-decoration:none;font:500 14px/1.4 var(--serif);padding:9px 10px;border-radius:8px;border:1px solid transparent}
-  .panel li a:hover{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.1)}
-  .panel .x{position:absolute;top:14px;right:14px;color:var(--uimut);cursor:pointer;font-size:20px;background:none;border:none}
-  #bmlist:empty::after{content:"No bookmarks yet \2014 tap \2606 on any page.";color:var(--uimut);font:13px/1.5 var(--sans);display:block;padding:4px 10px}
-  .searchbox{display:flex;gap:6px;margin-bottom:12px}
-  .searchbox input{flex:1;background:#160f09;border:1px solid rgba(255,255,255,.16);color:var(--ui);border-radius:8px;padding:10px 12px;font:14px var(--sans)}
-  .searchbox button{background:var(--accent);color:#10222f;border:none;border-radius:8px;padding:0 14px;font:700 13px var(--sans);cursor:pointer}
-  .sresult{color:var(--uimut);font:13px/1.5 var(--sans);margin-bottom:10px}
-  .sresult b{color:var(--ui)}
-  .shade{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:38;opacity:0;pointer-events:none;transition:opacity .3s}
-  .shade.on{opacity:1;pointer-events:auto}
-  @media (max-width:720px){ .bar button{padding:9px 7px;font-size:12px} .bar .lbl{display:none} }
+/* ---- StPageFlip ---- */
+.stf__parent {
+  position: relative;
+  display: block;
+  box-sizing: border-box;
+  transform: translateZ(0);
+
+  -ms-touch-action: pan-y;
+  touch-action: pan-y;
+}
+
+.sft__wrapper {
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.stf__parent canvas {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  left: 0;
+  top: 0;
+}
+
+.stf__block {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  perspective: 2000px;
+}
+
+.stf__item {
+  display: none;
+  position: absolute;
+  transform-style: preserve-3d;
+}
+
+.stf__outerShadow {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.stf__innerShadow {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.stf__hardShadow {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.stf__hardInnerShadow {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+/* ---- app ---- */
+:root{ --paper:#faf5ec; --ink:#20242b; --muted:#6b6256; --navy:#1F3A5F; --maroon:#7A2E2E; --gold:#C9A227;
+  --accent:#4f9dd6; --accent2:#86c1ea; --ui:#f4ede2; --uimut:#b6a991; --uipanel:rgba(28,21,16,.92);
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; --serif:Georgia,"Times New Roman",serif; }
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:radial-gradient(120% 120% at 50% -10%,#2a2016,#1c1510 70%);color:var(--ui);font-family:var(--sans);overflow:hidden;-webkit-font-smoothing:antialiased}
+.progress{position:fixed;top:0;left:0;height:3px;width:0;z-index:35;background:linear-gradient(90deg,var(--accent),var(--gold));transition:width .35s}
+.hint{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:30;background:var(--uipanel);color:var(--uimut);border:1px solid rgba(255,255,255,.1);border-radius:999px;padding:7px 16px;font:600 12.5px/1 var(--sans);transition:opacity .5s}
+.hint b{color:var(--accent2)}
+#viewport{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;overflow:hidden}
+#scaler{transform-origin:center center;transition:transform .18s}
+#book{box-shadow:0 30px 70px rgba(0,0,0,.55)}
+/* page look */
+.page{width:500px;height:680px;background:var(--paper);overflow:hidden}
+.pg{position:relative;width:100%;height:100%;padding:48px 46px;overflow:hidden;color:var(--ink);font-family:var(--serif);font-size:16.5px;line-height:1.62}
+.pg .content{min-height:1px}
+.pg .rh{position:absolute;top:17px;left:46px;right:46px;text-align:center;font:600 9.5px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--navy);opacity:.68}
+.pg .pn{position:absolute;bottom:16px;left:0;right:0;text-align:center;font:600 11px/1 var(--serif);color:var(--muted);opacity:.85}
+.pg .kick{margin:0 0 4px;font:bold 11px/1.3 var(--sans);letter-spacing:.2em;color:var(--maroon)}
+.pg h2.ch{margin:.05em 0 .1em;color:var(--navy);font-size:1.5em;line-height:1.18}
+.pg .sub{font-style:italic;color:var(--muted);font-size:1.02em;margin:0 0 1em}
+.pg .epi{text-align:center;font-style:italic;color:var(--muted);font-size:.88em;margin:1em 5%}
+.pg .scene{text-align:center;color:var(--navy);letter-spacing:.5em;margin:1.2em 0;font-size:.88em}
+.pg h3{color:var(--navy);font-size:1.1em;margin:1.3em 0 .4em}
+.pg p{margin:.65em 0;text-align:justify;-webkit-hyphens:auto;hyphens:auto}
+.pg .bth{background:#f3ead9;border:1px solid #d9bfa6;border-left:6px solid var(--maroon);padding:11px 13px;margin:1em 0;font-size:.9em;line-height:1.55}
+.pg .bth .bh{color:var(--maroon);font-weight:bold;letter-spacing:.05em;font-size:.82em;margin:0 0 .35em}
+.pg .bth p{margin:.4em 0;text-align:left}
+.pg mark.hl{background:#ffe066;color:#111;border-radius:2px}
+.pg .reading{background:rgba(79,157,214,.18);box-shadow:0 0 0 2px rgba(79,157,214,.3);border-radius:3px}
+/* cover + colophon */
+.page.cover .pg,.page.colophon .pg{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 10%}
+.page.cover .pg .content,.page.colophon .pg .content{height:auto;overflow:visible}
+.cover .k{font:bold 12px/1 var(--sans);letter-spacing:.3em;color:var(--maroon)}
+.cover h1{font-family:var(--serif);color:var(--navy);font-size:2.2em;line-height:1.1;margin:.3em 0 .1em;font-weight:bold}
+.cover .yr{font:bold 13px/1 var(--sans);letter-spacing:.3em;color:var(--muted);margin-top:.4em}
+.cover .mk{margin:22px 0}
+.cover .ft{margin-top:24px;font:italic .9em var(--serif);color:var(--muted)}
+.colophon h4{color:var(--navy);font-family:var(--serif);margin:0 0 10px;font-size:1.1em}
+.colophon p{font-size:.8em;color:var(--muted);line-height:1.6;margin:.5em 0}
+/* toolbar + panels */
+.bar{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:30;display:flex;align-items:center;gap:3px;background:var(--uipanel);border:1px solid rgba(255,255,255,.1);border-radius:999px;padding:7px 9px;box-shadow:0 10px 30px rgba(0,0,0,.45);max-width:95vw}
+.bar button{border:none;background:none;color:var(--ui);font:700 13px/1 var(--sans);padding:9px 10px;border-radius:999px;cursor:pointer;white-space:nowrap}
+.bar button:hover{background:rgba(255,255,255,.08)}
+.bar button.accent{color:var(--accent2)}
+.bar button.on{background:var(--accent);color:#10222f}
+.bar button.star.marked{color:var(--gold)}
+.bar .sep{width:1px;height:20px;background:rgba(255,255,255,.14);margin:0 3px}
+.bar .pg2{font:700 12.5px/1 var(--sans);color:var(--uimut);padding:0 8px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.bar .zl{font:700 12px/1 var(--sans);color:var(--uimut);min-width:40px;text-align:center}
+.panel{position:fixed;z-index:40;top:0;bottom:0;width:min(360px,86vw);background:#241c14;border-right:1px solid rgba(255,255,255,.12);box-shadow:30px 0 60px rgba(0,0,0,.5);left:0;transform:translateX(-102%);transition:transform .32s;padding:20px 18px;overflow:auto}
+.panel.open{transform:none}
+.panel h3{margin:14px 0 10px;font:800 13px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--accent2)}
+.panel h3:first-of-type{margin-top:4px}
+.panel ol{list-style:none;margin:0;padding:0}
+.panel li a{display:block;color:var(--ui);text-decoration:none;font:500 14px/1.4 var(--serif);padding:9px 10px;border-radius:8px;border:1px solid transparent}
+.panel li a:hover{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.1)}
+.panel .x{position:absolute;top:14px;right:14px;color:var(--uimut);cursor:pointer;font-size:20px;background:none;border:none}
+#bmlist:empty::after{content:"No bookmarks yet \2014 tap \2606 on any page.";color:var(--uimut);font:13px/1.5 var(--sans);display:block;padding:4px 10px}
+.searchbox{display:flex;gap:6px;margin-bottom:12px}
+.searchbox input{flex:1;background:#160f09;border:1px solid rgba(255,255,255,.16);color:var(--ui);border-radius:8px;padding:10px 12px;font:14px var(--sans)}
+.searchbox button{background:var(--accent);color:#10222f;border:none;border-radius:8px;padding:0 14px;font:700 13px var(--sans);cursor:pointer}
+.sresult{color:var(--uimut);font:13px/1.5 var(--sans);margin-bottom:10px}.sresult b{color:var(--ui)}
+.shade{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:38;opacity:0;pointer-events:none;transition:opacity .3s}
+.shade.on{opacity:1;pointer-events:auto}
+@media (max-width:720px){ .bar button{padding:9px 7px;font-size:12px} .bar .lbl,.bar .zl{display:none} }
 </style>
 </head>
 <body>
   <div class="progress" id="prog"></div>
-  <div class="hint" id="hint"><b>&larr; &rarr;</b> or drag to turn &nbsp;&middot;&nbsp; Contents &amp; Search below</div>
+  <div class="hint" id="hint"><b>Drag a page corner</b> &nbsp;&middot;&nbsp; <b>&larr; &rarr;</b> to turn &nbsp;&middot;&nbsp; Contents &amp; Search below</div>
 
-  <div class="stage">
-    <div class="book" id="book">
-      <div class="furn" id="rhL"></div><div class="furn" id="rhR"></div>
-      <div class="furn pn" id="pnL"></div><div class="furn pn" id="pnR"></div>
-      <div class="viewport" id="vp">
-        <div class="flow" id="flow">
-          <section class="cover">
-            <div class="k">PROMISE &amp; PRACTICE &middot; UNIT 3</div>
-            <h1>Industry, Immigration &amp; Reform</h1>
-            <div class="yr">1877 &ndash; 1919</div>
-            <div class="mark" aria-hidden="true">
-              <svg width="120" height="78" viewBox="0 0 120 78" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <g stroke="#1F3A5F" stroke-width="2.4">
-                  <rect x="10" y="40" width="16" height="30"/><rect x="30" y="28" width="16" height="42"/>
-                  <rect x="50" y="18" width="16" height="52"/><rect x="74" y="34" width="14" height="36"/>
-                  <rect x="92" y="24" width="16" height="46"/>
-                </g>
-                <circle cx="100" cy="16" r="9" stroke="#C9A227" stroke-width="2.4" fill="none"/>
-                <path d="M100 7v-4M100 29v-4M89 16h-4M115 16h-4M92.2 8.2l-2.8-2.8M110.6 26.6l-2.8-2.8M92.2 23.8l-2.8 2.8M110.6 5.4l-2.8 2.8" stroke="#C9A227" stroke-width="2"/>
-              </svg>
-            </div>
-            <div class="foot">An American history, told close to home</div>
-          </section>
-          <div class="kick" id="ch1">UNIT 3 · INDUSTRY, IMMIGRATION &amp; REFORM</div>
+  <div id="viewport"><div id="scaler"><div id="book"></div></div></div>
+
+  <!-- source content (hidden; paginated into pages at load) -->
+  <div id="src" hidden><div class="kick" id="ch1">UNIT 3 · INDUSTRY, IMMIGRATION &amp; REFORM</div>
 <h2 class="ch">Chapter 1 — The Gilded Age: Wealth and Its Cost</h2>
 <div class="sub">The new industrial America, 1877–1900</div>
 <div class="epi">Promise vs. Practice — Threads: LABOR</div>
@@ -570,143 +589,156 @@
 <div class="epi">Vocabulary in this chapter: lynching · Jim Crow · NAACP · the nadir · accommodation · Niagara Movement · Great Migration · interpretation</div>
 <div class="epi">Coming next — Unit 4: America steps onto the world stage — the Spanish-American War, the seizing of an overseas empire, the building of the Panama Canal, and the great debate over whether a republic born against empire should become one.</div>
 <p><b>Author's note.</b> I gave Ida B. Wells the first and last word of this chapter because she embodies what I most want you to take from this entire unit. Abandoned by the white reformers, threatened with death, driven from her home, she did not despair and she did not stay silent — she gathered the facts, proved the truth, and forced the country to look. She is not as famous as she should be, which is itself part of the story: the people who held America hardest to its promise are often the ones history has tried hardest to forget. Part of your job, as someone who can now think like a historian, is to remember them.</p>
-
-          <section class="colophon">
-            <h4>ShadowDog Digital Studios</h4>
-            <p>Promise &amp; Practice &middot; Unit 3 &mdash; Industry, Immigration &amp; Reform</p>
-            <p>&copy; 2026 ShadowDog Digital Studios. All Rights Reserved. ShadowDog Digital Studios holds explicit rights to the design, text, and arrangement of this material. Historical images are public domain and credited to their sources.</p>
-          </section>
-        </div>
-      </div>
-    </div>
-  </div>
+</div>
 
   <div class="shade" id="shade"></div>
-
   <nav class="panel" id="toc">
     <button class="x" data-close>&times;</button>
-    <h3>Bookmarks</h3>
-    <ol id="bmlist"></ol>
-    <h3>Contents</h3>
-    <ol><li><a href="#" data-anchor="ch1">Chapter 1 — The Gilded Age: Wealth and Its Cost</a></li><li><a href="#" data-anchor="ch2">Chapter 2 — Robber Barons and Captains of Industry</a></li><li><a href="#" data-anchor="ch3">Chapter 3 — The Golden Door: Immigrants in a New Land</a></li><li><a href="#" data-anchor="ch4">Chapter 4 — Fear and Exclusion</a></li><li><a href="#" data-anchor="ch5">Chapter 5 — Life in the Industrial City</a></li><li><a href="#" data-anchor="ch6">Chapter 6 — Strikes and Solidarity</a></li><li><a href="#" data-anchor="ch7">Chapter 7 — Voices for Reform</a></li><li><a href="#" data-anchor="ch8">Chapter 8 — Democracy Expanding and Contracting</a></li><li><a href="#" data-anchor="ch9">Chapter 9 — Seventy-Two Years: The Fight for Suffrage</a></li><li><a href="#" data-anchor="ch10">Chapter 10 — Whose Voices Were Left Out?</a></li></ol>
+    <h3>Bookmarks</h3><ol id="bmlist"></ol>
+    <h3>Contents</h3><ol><li><a href="#" data-anchor="ch1">Chapter 1 — The Gilded Age: Wealth and Its Cost</a></li><li><a href="#" data-anchor="ch2">Chapter 2 — Robber Barons and Captains of Industry</a></li><li><a href="#" data-anchor="ch3">Chapter 3 — The Golden Door: Immigrants in a New Land</a></li><li><a href="#" data-anchor="ch4">Chapter 4 — Fear and Exclusion</a></li><li><a href="#" data-anchor="ch5">Chapter 5 — Life in the Industrial City</a></li><li><a href="#" data-anchor="ch6">Chapter 6 — Strikes and Solidarity</a></li><li><a href="#" data-anchor="ch7">Chapter 7 — Voices for Reform</a></li><li><a href="#" data-anchor="ch8">Chapter 8 — Democracy Expanding and Contracting</a></li><li><a href="#" data-anchor="ch9">Chapter 9 — Seventy-Two Years: The Fight for Suffrage</a></li><li><a href="#" data-anchor="ch10">Chapter 10 — Whose Voices Were Left Out?</a></li></ol>
   </nav>
-
   <nav class="panel" id="search">
     <button class="x" data-close>&times;</button>
     <h3>Search the book</h3>
     <div class="searchbox"><input id="sq" type="search" placeholder="Find a word or phrase&hellip;" autocomplete="off"><button id="sgo">Find</button></div>
-    <div class="sresult" id="sres">Type a word and press Find.</div>
-    <ol id="shits"></ol>
+    <div class="sresult" id="sres">Type a word and press Find.</div><ol id="shits"></ol>
   </nav>
 
   <div class="bar">
     <button id="btoc">&#9776; <span class="lbl">Contents</span></button>
     <button id="bsearch" class="accent">&#9906; <span class="lbl">Search</span></button>
-    <button id="bstar" class="star" title="Bookmark this page">&#9734;</button>
+    <button id="bstar" class="star" title="Bookmark">&#9734;</button>
     <span class="sep"></span>
     <button id="bprev">&#8249; <span class="lbl">Prev</span></button>
-    <span class="pg" id="pg">&mdash;</span>
+    <span class="pg2" id="pc">&mdash;</span>
     <button id="bnext"><span class="lbl">Next</span> &#8250;</button>
     <span class="sep"></span>
     <button id="blisten">&#9658; <span class="lbl">Listen</span></button>
     <span class="sep"></span>
-    <button id="bminus">A&minus;</button><button id="bfit">Fit</button><button id="bplus">A+</button>
+    <button id="bminus">A&minus;</button><span class="zl" id="zl">100%</span><button id="bplus">A+</button><button id="bfit">Fit</button>
   </div>
 
 <script>
+!function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"function"==typeof define&&define.amd?define(["exports"],e):e((t=t||self).St={})}(this,(function(t){"use strict";class e{constructor(t,e){this.state={angle:0,area:[],position:{x:0,y:0},hardAngle:0,hardDrawingAngle:0},this.createdDensity=e,this.nowDrawingDensity=this.createdDensity,this.render=t}setDensity(t){this.createdDensity=t,this.nowDrawingDensity=t}setDrawingDensity(t){this.nowDrawingDensity=t}setPosition(t){this.state.position=t}setAngle(t){this.state.angle=t}setArea(t){this.state.area=t}setHardDrawingAngle(t){this.state.hardDrawingAngle=t}setHardAngle(t){this.state.hardAngle=t,this.state.hardDrawingAngle=t}setOrientation(t){this.orientation=t}getDrawingDensity(){return this.nowDrawingDensity}getDensity(){return this.createdDensity}getHardAngle(){return this.state.hardAngle}}class i extends e{constructor(t,e,i){super(t,i),this.image=null,this.isLoad=!1,this.loadingAngle=0,this.image=new Image,this.image.src=e}draw(t){const e=this.render.getContext(),i=this.render.convertToGlobal(this.state.position),s=this.render.getRect().pageWidth,n=this.render.getRect().height;e.save(),e.translate(i.x,i.y),e.beginPath();for(let t of this.state.area)null!==t&&(t=this.render.convertToGlobal(t),e.lineTo(t.x-i.x,t.y-i.y));e.rotate(this.state.angle),e.clip(),this.isLoad?e.drawImage(this.image,0,0,s,n):this.drawLoader(e,{x:0,y:0},s,n),e.restore()}simpleDraw(t){const e=this.render.getRect(),i=this.render.getContext(),s=e.pageWidth,n=e.height,h=1===t?e.left+e.pageWidth:e.left,r=e.top;this.isLoad?i.drawImage(this.image,h,r,s,n):this.drawLoader(i,{x:h,y:r},s,n)}drawLoader(t,e,i,s){t.beginPath(),t.strokeStyle="rgb(200, 200, 200)",t.fillStyle="rgb(255, 255, 255)",t.lineWidth=1,t.rect(e.x+1,e.y+1,i-1,s-1),t.stroke(),t.fill();const n={x:e.x+i/2,y:e.y+s/2};t.beginPath(),t.lineWidth=10,t.arc(n.x,n.y,20,this.loadingAngle,3*Math.PI/2+this.loadingAngle),t.stroke(),t.closePath(),this.loadingAngle+=.07,this.loadingAngle>=2*Math.PI&&(this.loadingAngle=0)}load(){this.isLoad||(this.image.onload=()=>{this.isLoad=!0})}newTemporaryCopy(){return this}getTemporaryCopy(){return this}hideTemporaryCopy(){}}class s{constructor(t,e){this.pages=[],this.currentPageIndex=0,this.currentSpreadIndex=0,this.landscapeSpread=[],this.portraitSpread=[],this.render=e,this.app=t,this.currentPageIndex=0,this.isShowCover=this.app.getSettings().showCover}destroy(){this.pages=[]}createSpread(){this.landscapeSpread=[],this.portraitSpread=[];for(let t=0;t<this.pages.length;t++)this.portraitSpread.push([t]);let t=0;this.isShowCover&&(this.pages[0].setDensity("hard"),this.landscapeSpread.push([t]),t++);for(let e=t;e<this.pages.length;e+=2)e<this.pages.length-1?this.landscapeSpread.push([e,e+1]):(this.landscapeSpread.push([e]),this.pages[e].setDensity("hard"))}getSpread(){return"landscape"===this.render.getOrientation()?this.landscapeSpread:this.portraitSpread}getSpreadIndexByPage(t){const e=this.getSpread();for(let i=0;i<e.length;i++)if(t===e[i][0]||t===e[i][1])return i;return null}getPageCount(){return this.pages.length}getPages(){return this.pages}getPage(t){if(t>=0&&t<this.pages.length)return this.pages[t];throw new Error("Invalid page number")}nextBy(t){const e=this.pages.indexOf(t);return e<this.pages.length-1?this.pages[e+1]:null}prevBy(t){const e=this.pages.indexOf(t);return e>0?this.pages[e-1]:null}getFlippingPage(t){const e=this.currentSpreadIndex;if("portrait"===this.render.getOrientation())return 0===t?this.pages[e].newTemporaryCopy():this.pages[e-1];{const i=0===t?this.getSpread()[e+1]:this.getSpread()[e-1];return 1===i.length||0===t?this.pages[i[0]]:this.pages[i[1]]}}getBottomPage(t){const e=this.currentSpreadIndex;if("portrait"===this.render.getOrientation())return 0===t?this.pages[e+1]:this.pages[e-1];{const i=0===t?this.getSpread()[e+1]:this.getSpread()[e-1];return 1===i.length?this.pages[i[0]]:0===t?this.pages[i[1]]:this.pages[i[0]]}}showNext(){this.currentSpreadIndex<this.getSpread().length&&(this.currentSpreadIndex++,this.showSpread())}showPrev(){this.currentSpreadIndex>0&&(this.currentSpreadIndex--,this.showSpread())}getCurrentPageIndex(){return this.currentPageIndex}show(t=null){if(null===t&&(t=this.currentPageIndex),t<0||t>=this.pages.length)return;const e=this.getSpreadIndexByPage(t);null!==e&&(this.currentSpreadIndex=e,this.showSpread())}getCurrentSpreadIndex(){return this.currentSpreadIndex}setCurrentSpreadIndex(t){if(!(t>=0&&t<this.getSpread().length))throw new Error("Invalid page");this.currentSpreadIndex=t}showSpread(){const t=this.getSpread()[this.currentSpreadIndex];2===t.length?(this.render.setLeftPage(this.pages[t[0]]),this.render.setRightPage(this.pages[t[1]])):"landscape"===this.render.getOrientation()&&t[0]===this.pages.length-1?(this.render.setLeftPage(this.pages[t[0]]),this.render.setRightPage(null)):(this.render.setLeftPage(null),this.render.setRightPage(this.pages[t[0]])),this.currentPageIndex=t[0],this.app.updatePageIndex(this.currentPageIndex)}}class n extends s{constructor(t,e,i){super(t,e),this.imagesHref=i}load(){for(const t of this.imagesHref){const e=new i(this.render,t,"soft");e.load(),this.pages.push(e)}this.createSpread()}}class h{static GetDistanceBetweenTwoPoint(t,e){return null===t||null===e?1/0:Math.sqrt(Math.pow(e.x-t.x,2)+Math.pow(e.y-t.y,2))}static GetSegmentLength(t){return h.GetDistanceBetweenTwoPoint(t[0],t[1])}static GetAngleBetweenTwoLine(t,e){const i=t[0].y-t[1].y,s=e[0].y-e[1].y,n=t[1].x-t[0].x,h=e[1].x-e[0].x;return Math.acos((i*s+n*h)/(Math.sqrt(i*i+n*n)*Math.sqrt(s*s+h*h)))}static PointInRect(t,e){return null===e?null:e.x>=t.left&&e.x<=t.width+t.left&&e.y>=t.top&&e.y<=t.top+t.height?e:null}static GetRotatedPoint(t,e,i){return{x:t.x*Math.cos(i)+t.y*Math.sin(i)+e.x,y:t.y*Math.cos(i)-t.x*Math.sin(i)+e.y}}static LimitPointToCircle(t,e,i){if(h.GetDistanceBetweenTwoPoint(t,i)<=e)return i;const s=t.x,n=t.y,r=i.x,o=i.y;let a=Math.sqrt(Math.pow(e,2)*Math.pow(s-r,2)/(Math.pow(s-r,2)+Math.pow(n-o,2)))+s;i.x<0&&(a*=-1);let g=(a-s)*(n-o)/(s-r)+n;return s-r+n===0&&(g=e),{x:a,y:g}}static GetIntersectBetweenTwoSegment(t,e,i){return h.PointInRect(t,h.GetIntersectBeetwenTwoLine(e,i))}static GetIntersectBeetwenTwoLine(t,e){const i=t[0].y-t[1].y,s=e[0].y-e[1].y,n=t[1].x-t[0].x,h=e[1].x-e[0].x,r=t[0].x*t[1].y-t[1].x*t[0].y,o=e[0].x*e[1].y-e[1].x*e[0].y,a=i*o-s*r,g=n*o-h*r,l=-(r*h-o*n)/(i*h-s*n),d=-(i*o-s*r)/(i*h-s*n);if(isFinite(l)&&isFinite(d))return{x:l,y:d};if(Math.abs(a-g)<.1)throw new Error("Segment included");return null}static GetCordsFromTwoPoint(t,e){const i=Math.abs(t.x-e.x),s=Math.abs(t.y-e.y),n=Math.max(i,s),h=[t];function r(t,e,i,s,n){return e>t?t+n*(i/s):e<t?t-n*(i/s):t}for(let o=1;o<=n;o+=1)h.push({x:r(t.x,e.x,i,n,o),y:r(t.y,e.y,s,n,o)});return h}}class r extends e{constructor(t,e,i){super(t,i),this.copiedElement=null,this.temporaryCopy=null,this.isLoad=!1,this.element=e,this.element.classList.add("stf__item"),this.element.classList.add("--"+i)}newTemporaryCopy(){return"hard"===this.nowDrawingDensity?this:(null===this.temporaryCopy&&(this.copiedElement=this.element.cloneNode(!0),this.element.parentElement.appendChild(this.copiedElement),this.temporaryCopy=new r(this.render,this.copiedElement,this.nowDrawingDensity)),this.getTemporaryCopy())}getTemporaryCopy(){return this.temporaryCopy}hideTemporaryCopy(){null!==this.temporaryCopy&&(this.copiedElement.remove(),this.copiedElement=null,this.temporaryCopy=null)}draw(t){const e=t||this.nowDrawingDensity,i=this.render.convertToGlobal(this.state.position),s=this.render.getRect().pageWidth,n=this.render.getRect().height;this.element.classList.remove("--simple");const h=`\n            display: block;\n            z-index: ${this.element.style.zIndex};\n            left: 0;\n            top: 0;\n            width: ${s}px;\n            height: ${n}px;\n        `;"hard"===e?this.drawHard(h):this.drawSoft(i,h)}drawHard(t=""){const e=this.render.getRect().left+this.render.getRect().width/2,i=this.state.hardDrawingAngle,s=t+"\n                backface-visibility: hidden;\n                -webkit-backface-visibility: hidden;\n                clip-path: none;\n                -webkit-clip-path: none;\n            "+(0===this.orientation?`transform-origin: ${this.render.getRect().pageWidth}px 0; \n                   transform: translate3d(0, 0, 0) rotateY(${i}deg);`:`transform-origin: 0 0; \n                   transform: translate3d(${e}px, 0, 0) rotateY(${i}deg);`);this.element.style.cssText=s}drawSoft(t,e=""){let i="polygon( ";for(const t of this.state.area)if(null!==t){let e=1===this.render.getDirection()?{x:-t.x+this.state.position.x,y:t.y-this.state.position.y}:{x:t.x-this.state.position.x,y:t.y-this.state.position.y};e=h.GetRotatedPoint(e,{x:0,y:0},this.state.angle),i+=e.x+"px "+e.y+"px, "}i=i.slice(0,-2),i+=")";const s=e+`transform-origin: 0 0; clip-path: ${i}; -webkit-clip-path: ${i};`+(this.render.isSafari()&&0===this.state.angle?`transform: translate(${t.x}px, ${t.y}px);`:`transform: translate3d(${t.x}px, ${t.y}px, 0) rotate(${this.state.angle}rad);`);this.element.style.cssText=s}simpleDraw(t){const e=this.render.getRect(),i=e.pageWidth,s=e.height,n=1===t?e.left+e.pageWidth:e.left,h=e.top;this.element.classList.add("--simple"),this.element.style.cssText=`\n            position: absolute; \n            display: block; \n            height: ${s}px; \n            left: ${n}px; \n            top: ${h}px; \n            width: ${i}px; \n            z-index: ${this.render.getSettings().startZIndex+1};`}getElement(){return this.element}load(){this.isLoad=!0}setOrientation(t){super.setOrientation(t),this.element.classList.remove("--left","--right"),this.element.classList.add(1===t?"--right":"--left")}setDrawingDensity(t){this.element.classList.remove("--soft","--hard"),this.element.classList.add("--"+t),super.setDrawingDensity(t)}}class o extends s{constructor(t,e,i,s){super(t,e),this.element=i,this.pagesElement=s}load(){for(const t of this.pagesElement){const e=new r(this.render,t,"hard"===t.dataset.density?"hard":"soft");e.load(),this.pages.push(e)}this.createSpread()}}class a{constructor(t,e,i,s){this.direction=t,this.corner=e,this.topIntersectPoint=null,this.sideIntersectPoint=null,this.bottomIntersectPoint=null,this.pageWidth=parseInt(i,10),this.pageHeight=parseInt(s,10)}calc(t){try{return this.position=this.calcAngleAndPosition(t),this.calculateIntersectPoint(this.position),!0}catch(t){return!1}}getFlippingClipArea(){const t=[];let e=!1;return t.push(this.rect.topLeft),t.push(this.topIntersectPoint),null===this.sideIntersectPoint?e=!0:(t.push(this.sideIntersectPoint),null===this.bottomIntersectPoint&&(e=!1)),t.push(this.bottomIntersectPoint),(e||"bottom"===this.corner)&&t.push(this.rect.bottomLeft),t}getBottomClipArea(){const t=[];return t.push(this.topIntersectPoint),"top"===this.corner?t.push({x:this.pageWidth,y:0}):(null!==this.topIntersectPoint&&t.push({x:this.pageWidth,y:0}),t.push({x:this.pageWidth,y:this.pageHeight})),null!==this.sideIntersectPoint?h.GetDistanceBetweenTwoPoint(this.sideIntersectPoint,this.topIntersectPoint)>=10&&t.push(this.sideIntersectPoint):"top"===this.corner&&t.push({x:this.pageWidth,y:this.pageHeight}),t.push(this.bottomIntersectPoint),t.push(this.topIntersectPoint),t}getAngle(){return 0===this.direction?-this.angle:this.angle}getRect(){return this.rect}getPosition(){return this.position}getActiveCorner(){return 0===this.direction?this.rect.topLeft:this.rect.topRight}getDirection(){return this.direction}getFlippingProgress(){return Math.abs((this.position.x-this.pageWidth)/(2*this.pageWidth)*100)}getCorner(){return this.corner}getBottomPagePosition(){return 1===this.direction?{x:this.pageWidth,y:0}:{x:0,y:0}}getShadowStartPoint(){return"top"===this.corner?this.topIntersectPoint:null!==this.sideIntersectPoint?this.sideIntersectPoint:this.topIntersectPoint}getShadowAngle(){const t=h.GetAngleBetweenTwoLine(this.getSegmentToShadowLine(),[{x:0,y:0},{x:this.pageWidth,y:0}]);return 0===this.direction?t:Math.PI-t}calcAngleAndPosition(t){let e=t;if(this.updateAngleAndGeometry(e),e="top"===this.corner?this.checkPositionAtCenterLine(e,{x:0,y:0},{x:0,y:this.pageHeight}):this.checkPositionAtCenterLine(e,{x:0,y:this.pageHeight},{x:0,y:0}),Math.abs(e.x-this.pageWidth)<1&&Math.abs(e.y)<1)throw new Error("Point is too small");return e}updateAngleAndGeometry(t){this.angle=this.calculateAngle(t),this.rect=this.getPageRect(t)}calculateAngle(t){const e=this.pageWidth-t.x+1,i="bottom"===this.corner?this.pageHeight-t.y:t.y;let s=2*Math.acos(e/Math.sqrt(i*i+e*e));i<0&&(s=-s);const n=Math.PI-s;if(!isFinite(s)||n>=0&&n<.003)throw new Error("The G point is too small");return"bottom"===this.corner&&(s=-s),s}getPageRect(t){return"top"===this.corner?this.getRectFromBasePoint([{x:0,y:0},{x:this.pageWidth,y:0},{x:0,y:this.pageHeight},{x:this.pageWidth,y:this.pageHeight}],t):this.getRectFromBasePoint([{x:0,y:-this.pageHeight},{x:this.pageWidth,y:-this.pageHeight},{x:0,y:0},{x:this.pageWidth,y:0}],t)}getRectFromBasePoint(t,e){return{topLeft:this.getRotatedPoint(t[0],e),topRight:this.getRotatedPoint(t[1],e),bottomLeft:this.getRotatedPoint(t[2],e),bottomRight:this.getRotatedPoint(t[3],e)}}getRotatedPoint(t,e){return{x:t.x*Math.cos(this.angle)+t.y*Math.sin(this.angle)+e.x,y:t.y*Math.cos(this.angle)-t.x*Math.sin(this.angle)+e.y}}calculateIntersectPoint(t){const e={left:-1,top:-1,width:this.pageWidth+2,height:this.pageHeight+2};"top"===this.corner?(this.topIntersectPoint=h.GetIntersectBetweenTwoSegment(e,[t,this.rect.topRight],[{x:0,y:0},{x:this.pageWidth,y:0}]),this.sideIntersectPoint=h.GetIntersectBetweenTwoSegment(e,[t,this.rect.bottomLeft],[{x:this.pageWidth,y:0},{x:this.pageWidth,y:this.pageHeight}]),this.bottomIntersectPoint=h.GetIntersectBetweenTwoSegment(e,[this.rect.bottomLeft,this.rect.bottomRight],[{x:0,y:this.pageHeight},{x:this.pageWidth,y:this.pageHeight}])):(this.topIntersectPoint=h.GetIntersectBetweenTwoSegment(e,[this.rect.topLeft,this.rect.topRight],[{x:0,y:0},{x:this.pageWidth,y:0}]),this.sideIntersectPoint=h.GetIntersectBetweenTwoSegment(e,[t,this.rect.topLeft],[{x:this.pageWidth,y:0},{x:this.pageWidth,y:this.pageHeight}]),this.bottomIntersectPoint=h.GetIntersectBetweenTwoSegment(e,[this.rect.bottomLeft,this.rect.bottomRight],[{x:0,y:this.pageHeight},{x:this.pageWidth,y:this.pageHeight}]))}checkPositionAtCenterLine(t,e,i){let s=t;const n=h.LimitPointToCircle(e,this.pageWidth,s);s!==n&&(s=n,this.updateAngleAndGeometry(s));const r=Math.sqrt(Math.pow(this.pageWidth,2)+Math.pow(this.pageHeight,2));let o=this.rect.bottomRight,a=this.rect.topLeft;if("bottom"===this.corner&&(o=this.rect.topRight,a=this.rect.bottomLeft),o.x<=0){const t=h.LimitPointToCircle(i,r,a);t!==s&&(s=t,this.updateAngleAndGeometry(s))}return s}getSegmentToShadowLine(){const t=this.getShadowStartPoint();return[t,t!==this.sideIntersectPoint&&null!==this.sideIntersectPoint?this.sideIntersectPoint:this.bottomIntersectPoint]}}class g{constructor(t,e){this.flippingPage=null,this.bottomPage=null,this.calc=null,this.state="read",this.render=t,this.app=e}fold(t){this.setState("user_fold"),null===this.calc&&this.start(t),this.do(this.render.convertToPage(t))}flip(t){if(this.app.getSettings().disableFlipByClick&&!this.isPointOnCorners(t))return;if(null!==this.calc&&this.render.finishAnimation(),!this.start(t))return;const e=this.getBoundsRect();this.setState("flipping");const i=e.height/10,s="bottom"===this.calc.getCorner()?e.height-i:i,n="bottom"===this.calc.getCorner()?e.height:0;this.calc.calc({x:e.pageWidth-i,y:s}),this.animateFlippingTo({x:e.pageWidth-i,y:s},{x:-e.pageWidth,y:n},!0)}start(t){this.reset();const e=this.render.convertToBook(t),i=this.getBoundsRect(),s=this.getDirectionByPoint(e),n=e.y>=i.height/2?"bottom":"top";if(!this.checkDirection(s))return!1;try{if(this.flippingPage=this.app.getPageCollection().getFlippingPage(s),this.bottomPage=this.app.getPageCollection().getBottomPage(s),"landscape"===this.render.getOrientation())if(1===s){const t=this.app.getPageCollection().nextBy(this.flippingPage);null!==t&&this.flippingPage.getDensity()!==t.getDensity()&&(this.flippingPage.setDrawingDensity("hard"),t.setDrawingDensity("hard"))}else{const t=this.app.getPageCollection().prevBy(this.flippingPage);null!==t&&this.flippingPage.getDensity()!==t.getDensity()&&(this.flippingPage.setDrawingDensity("hard"),t.setDrawingDensity("hard"))}return this.render.setDirection(s),this.calc=new a(s,n,i.pageWidth.toString(10),i.height.toString(10)),!0}catch(t){return!1}}do(t){if(null!==this.calc&&this.calc.calc(t)){const t=this.calc.getFlippingProgress();this.bottomPage.setArea(this.calc.getBottomClipArea()),this.bottomPage.setPosition(this.calc.getBottomPagePosition()),this.bottomPage.setAngle(0),this.bottomPage.setHardAngle(0),this.flippingPage.setArea(this.calc.getFlippingClipArea()),this.flippingPage.setPosition(this.calc.getActiveCorner()),this.flippingPage.setAngle(this.calc.getAngle()),0===this.calc.getDirection()?this.flippingPage.setHardAngle(90*(200-2*t)/100):this.flippingPage.setHardAngle(-90*(200-2*t)/100),this.render.setPageRect(this.calc.getRect()),this.render.setBottomPage(this.bottomPage),this.render.setFlippingPage(this.flippingPage),this.render.setShadowData(this.calc.getShadowStartPoint(),this.calc.getShadowAngle(),t,this.calc.getDirection())}}flipToPage(t,e){const i=this.app.getPageCollection().getCurrentSpreadIndex(),s=this.app.getPageCollection().getSpreadIndexByPage(t);try{s>i&&(this.app.getPageCollection().setCurrentSpreadIndex(s-1),this.flipNext(e)),s<i&&(this.app.getPageCollection().setCurrentSpreadIndex(s+1),this.flipPrev(e))}catch(t){}}flipNext(t){this.flip({x:this.render.getRect().left+2*this.render.getRect().pageWidth-10,y:"top"===t?1:this.render.getRect().height-2})}flipPrev(t){this.flip({x:10,y:"top"===t?1:this.render.getRect().height-2})}stopMove(){if(null===this.calc)return;const t=this.calc.getPosition(),e=this.getBoundsRect(),i="bottom"===this.calc.getCorner()?e.height:0;t.x<=0?this.animateFlippingTo(t,{x:-e.pageWidth,y:i},!0):this.animateFlippingTo(t,{x:e.pageWidth,y:i},!1)}showCorner(t){if(!this.checkState("read","fold_corner"))return;const e=this.getBoundsRect(),i=e.pageWidth;if(this.isPointOnCorners(t))if(null===this.calc){if(!this.start(t))return;this.setState("fold_corner"),this.calc.calc({x:i-1,y:1});const s=50,n="bottom"===this.calc.getCorner()?e.height-1:1,h="bottom"===this.calc.getCorner()?e.height-s:s;this.animateFlippingTo({x:i-1,y:n},{x:i-s,y:h},!1,!1)}else this.do(this.render.convertToPage(t));else this.setState("read"),this.render.finishAnimation(),this.stopMove()}animateFlippingTo(t,e,i,s=!0){const n=h.GetCordsFromTwoPoint(t,e),r=[];for(const t of n)r.push(()=>this.do(t));const o=this.getAnimationDuration(n.length);this.render.startAnimation(r,o,()=>{this.calc&&(i&&(1===this.calc.getDirection()?this.app.turnToPrevPage():this.app.turnToNextPage()),s&&(this.render.setBottomPage(null),this.render.setFlippingPage(null),this.render.clearShadow(),this.setState("read"),this.reset()))})}getCalculation(){return this.calc}getState(){return this.state}setState(t){this.state!==t&&(this.app.updateState(t),this.state=t)}getDirectionByPoint(t){const e=this.getBoundsRect();if("portrait"===this.render.getOrientation()){if(t.x-e.pageWidth<=e.width/5)return 1}else if(t.x<e.width/2)return 1;return 0}getAnimationDuration(t){const e=this.app.getSettings().flippingTime;return t>=1e3?e:t/1e3*e}checkDirection(t){return 0===t?this.app.getCurrentPageIndex()<this.app.getPageCount()-1:this.app.getCurrentPageIndex()>=1}reset(){this.calc=null,this.flippingPage=null,this.bottomPage=null}getBoundsRect(){return this.render.getRect()}checkState(...t){for(const e of t)if(this.state===e)return!0;return!1}isPointOnCorners(t){const e=this.getBoundsRect(),i=e.pageWidth,s=Math.sqrt(Math.pow(i,2)+Math.pow(e.height,2))/5,n=this.render.convertToBook(t);return n.x>0&&n.y>0&&n.x<e.width&&n.y<e.height&&(n.x<s||n.x>e.width-s)&&(n.y<s||n.y>e.height-s)}}class l{constructor(t,e){this.leftPage=null,this.rightPage=null,this.flippingPage=null,this.bottomPage=null,this.direction=null,this.orientation=null,this.shadow=null,this.animation=null,this.pageRect=null,this.boundsRect=null,this.timer=0,this.safari=!1,this.setting=e,this.app=t;const i=new RegExp("Version\\/[\\d\\.]+.*Safari/");this.safari=null!==i.exec(window.navigator.userAgent)}render(t){if(null!==this.animation){const e=Math.round((t-this.animation.startedAt)/this.animation.durationFrame);e<this.animation.frames.length?this.animation.frames[e]():(this.animation.onAnimateEnd(),this.animation=null)}this.timer=t,this.drawFrame()}start(){this.update();const t=e=>{this.render(e),requestAnimationFrame(t)};requestAnimationFrame(t)}startAnimation(t,e,i){this.finishAnimation(),this.animation={frames:t,duration:e,durationFrame:e/t.length,onAnimateEnd:i,startedAt:this.timer}}finishAnimation(){null!==this.animation&&(this.animation.frames[this.animation.frames.length-1](),null!==this.animation.onAnimateEnd&&this.animation.onAnimateEnd()),this.animation=null}update(){this.boundsRect=null;const t=this.calculateBoundsRect();this.orientation!==t&&(this.orientation=t,this.app.updateOrientation(t))}calculateBoundsRect(){let t="landscape";const e=this.getBlockWidth(),i=e/2,s=this.getBlockHeight()/2,n=this.setting.width/this.setting.height;let h=this.setting.width,r=this.setting.height,o=i-h;return"stretch"===this.setting.size?(e<2*this.setting.minWidth&&this.app.getSettings().usePortrait&&(t="portrait"),h="portrait"===t?this.getBlockWidth():this.getBlockWidth()/2,h>this.setting.maxWidth&&(h=this.setting.maxWidth),r=h/n,r>this.getBlockHeight()&&(r=this.getBlockHeight(),h=r*n),o="portrait"===t?i-h/2-h:i-h):e<2*h&&this.app.getSettings().usePortrait&&(t="portrait",o=i-h/2-h),this.boundsRect={left:o,top:s-r/2,width:2*h,height:r,pageWidth:h},t}setShadowData(t,e,i,s){if(!this.app.getSettings().drawShadow)return;const n=100*this.getSettings().maxShadowOpacity;this.shadow={pos:t,angle:e,width:3*this.getRect().pageWidth/4*i/100,opacity:(100-i)*n/100/100,direction:s,progress:2*i}}clearShadow(){this.shadow=null}getBlockWidth(){return this.app.getUI().getDistElement().offsetWidth}getBlockHeight(){return this.app.getUI().getDistElement().offsetHeight}getDirection(){return this.direction}getRect(){return null===this.boundsRect&&this.calculateBoundsRect(),this.boundsRect}getSettings(){return this.app.getSettings()}getOrientation(){return this.orientation}setPageRect(t){this.pageRect=t}setDirection(t){this.direction=t}setRightPage(t){null!==t&&t.setOrientation(1),this.rightPage=t}setLeftPage(t){null!==t&&t.setOrientation(0),this.leftPage=t}setBottomPage(t){null!==t&&t.setOrientation(1===this.direction?0:1),this.bottomPage=t}setFlippingPage(t){null!==t&&t.setOrientation(0===this.direction&&"portrait"!==this.orientation?0:1),this.flippingPage=t}convertToBook(t){const e=this.getRect();return{x:t.x-e.left,y:t.y-e.top}}isSafari(){return this.safari}convertToPage(t,e){e||(e=this.direction);const i=this.getRect();return{x:0===e?t.x-i.left-i.width/2:i.width/2-t.x+i.left,y:t.y-i.top}}convertToGlobal(t,e){if(e||(e=this.direction),null==t)return null;const i=this.getRect();return{x:0===e?t.x+i.left+i.width/2:i.width/2-t.x+i.left,y:t.y+i.top}}convertRectToGlobal(t,e){return e||(e=this.direction),{topLeft:this.convertToGlobal(t.topLeft,e),topRight:this.convertToGlobal(t.topRight,e),bottomLeft:this.convertToGlobal(t.bottomLeft,e),bottomRight:this.convertToGlobal(t.bottomRight,e)}}}class d extends l{constructor(t,e,i){super(t,e),this.canvas=i,this.ctx=i.getContext("2d")}getContext(){return this.ctx}reload(){}drawFrame(){this.clear(),"portrait"!==this.orientation&&null!=this.leftPage&&this.leftPage.simpleDraw(0),null!=this.rightPage&&this.rightPage.simpleDraw(1),null!=this.bottomPage&&this.bottomPage.draw(),this.drawBookShadow(),null!=this.flippingPage&&this.flippingPage.draw(),null!=this.shadow&&(this.drawOuterShadow(),this.drawInnerShadow());const t=this.getRect();"portrait"===this.orientation&&(this.ctx.beginPath(),this.ctx.rect(t.left+t.pageWidth,t.top,t.width,t.height),this.ctx.clip())}drawBookShadow(){const t=this.getRect();this.ctx.save(),this.ctx.beginPath();const e=t.width/20;this.ctx.rect(t.left,t.top,t.width,t.height);const i={x:t.left+t.width/2-e/2,y:0};this.ctx.translate(i.x,i.y);const s=this.ctx.createLinearGradient(0,0,e,0);s.addColorStop(0,"rgba(0, 0, 0, 0)"),s.addColorStop(.4,"rgba(0, 0, 0, 0.2)"),s.addColorStop(.49,"rgba(0, 0, 0, 0.1)"),s.addColorStop(.5,"rgba(0, 0, 0, 0.5)"),s.addColorStop(.51,"rgba(0, 0, 0, 0.4)"),s.addColorStop(1,"rgba(0, 0, 0, 0)"),this.ctx.clip(),this.ctx.fillStyle=s,this.ctx.fillRect(0,0,e,2*t.height),this.ctx.restore()}drawOuterShadow(){const t=this.getRect();this.ctx.save(),this.ctx.beginPath(),this.ctx.rect(t.left,t.top,t.width,t.height);const e=this.convertToGlobal({x:this.shadow.pos.x,y:this.shadow.pos.y});this.ctx.translate(e.x,e.y),this.ctx.rotate(Math.PI+this.shadow.angle+Math.PI/2);const i=this.ctx.createLinearGradient(0,0,this.shadow.width,0);0===this.shadow.direction?(this.ctx.translate(0,-100),i.addColorStop(0,"rgba(0, 0, 0, "+this.shadow.opacity+")"),i.addColorStop(1,"rgba(0, 0, 0, 0)")):(this.ctx.translate(-this.shadow.width,-100),i.addColorStop(0,"rgba(0, 0, 0, 0)"),i.addColorStop(1,"rgba(0, 0, 0, "+this.shadow.opacity+")")),this.ctx.clip(),this.ctx.fillStyle=i,this.ctx.fillRect(0,0,this.shadow.width,2*t.height),this.ctx.restore()}drawInnerShadow(){const t=this.getRect();this.ctx.save(),this.ctx.beginPath();const e=this.convertToGlobal({x:this.shadow.pos.x,y:this.shadow.pos.y}),i=this.convertRectToGlobal(this.pageRect);this.ctx.moveTo(i.topLeft.x,i.topLeft.y),this.ctx.lineTo(i.topRight.x,i.topRight.y),this.ctx.lineTo(i.bottomRight.x,i.bottomRight.y),this.ctx.lineTo(i.bottomLeft.x,i.bottomLeft.y),this.ctx.translate(e.x,e.y),this.ctx.rotate(Math.PI+this.shadow.angle+Math.PI/2);const s=3*this.shadow.width/4,n=this.ctx.createLinearGradient(0,0,s,0);0===this.shadow.direction?(this.ctx.translate(-s,-100),n.addColorStop(1,"rgba(0, 0, 0, "+this.shadow.opacity+")"),n.addColorStop(.9,"rgba(0, 0, 0, 0.05)"),n.addColorStop(.7,"rgba(0, 0, 0, "+this.shadow.opacity+")"),n.addColorStop(0,"rgba(0, 0, 0, 0)")):(this.ctx.translate(0,-100),n.addColorStop(0,"rgba(0, 0, 0, "+this.shadow.opacity+")"),n.addColorStop(.1,"rgba(0, 0, 0, 0.05)"),n.addColorStop(.3,"rgba(0, 0, 0, "+this.shadow.opacity+")"),n.addColorStop(1,"rgba(0, 0, 0, 0)")),this.ctx.clip(),this.ctx.fillStyle=n,this.ctx.fillRect(0,0,s,2*t.height),this.ctx.restore()}clear(){this.ctx.fillStyle="white",this.ctx.fillRect(0,0,this.canvas.width,this.canvas.height)}}class p{constructor(t,e,i){this.touchPoint=null,this.swipeTimeout=250,this.onResize=()=>{this.update()},this.onMouseDown=t=>{if(this.checkTarget(t.target)){const e=this.getMousePos(t.clientX,t.clientY);this.app.startUserTouch(e),t.preventDefault()}},this.onTouchStart=t=>{if(this.checkTarget(t.target)&&t.changedTouches.length>0){const e=t.changedTouches[0],i=this.getMousePos(e.clientX,e.clientY);this.touchPoint={point:i,time:Date.now()},setTimeout(()=>{null!==this.touchPoint&&this.app.startUserTouch(i)},this.swipeTimeout),this.app.getSettings().mobileScrollSupport||t.preventDefault()}},this.onMouseUp=t=>{const e=this.getMousePos(t.clientX,t.clientY);this.app.userStop(e)},this.onMouseMove=t=>{const e=this.getMousePos(t.clientX,t.clientY);this.app.userMove(e,!1)},this.onTouchMove=t=>{if(t.changedTouches.length>0){const e=t.changedTouches[0],i=this.getMousePos(e.clientX,e.clientY);this.app.getSettings().mobileScrollSupport?(null!==this.touchPoint&&(Math.abs(this.touchPoint.point.x-i.x)>10||"read"!==this.app.getState())&&t.cancelable&&this.app.userMove(i,!0),"read"!==this.app.getState()&&t.preventDefault()):this.app.userMove(i,!0)}},this.onTouchEnd=t=>{if(t.changedTouches.length>0){const e=t.changedTouches[0],i=this.getMousePos(e.clientX,e.clientY);let s=!1;if(null!==this.touchPoint){const t=i.x-this.touchPoint.point.x,e=Math.abs(i.y-this.touchPoint.point.y);Math.abs(t)>this.swipeDistance&&e<2*this.swipeDistance&&Date.now()-this.touchPoint.time<this.swipeTimeout&&(t>0?this.app.flipPrev(this.touchPoint.point.y<this.app.getRender().getRect().height/2?"top":"bottom"):this.app.flipNext(this.touchPoint.point.y<this.app.getRender().getRect().height/2?"top":"bottom"),s=!0),this.touchPoint=null}this.app.userStop(i,s)}},this.parentElement=t,t.classList.add("stf__parent"),t.insertAdjacentHTML("afterbegin",'<div class="stf__wrapper"></div>'),this.wrapper=t.querySelector(".stf__wrapper"),this.app=e;const s=this.app.getSettings().usePortrait?1:2;t.style.minWidth=i.minWidth*s+"px",t.style.minHeight=i.minHeight+"px","fixed"===i.size&&(t.style.minWidth=i.width*s+"px",t.style.minHeight=i.height+"px"),i.autoSize&&(t.style.width="100%",t.style.maxWidth=2*i.maxWidth+"px"),t.style.display="block",window.addEventListener("resize",this.onResize,!1),this.swipeDistance=i.swipeDistance}destroy(){this.app.getSettings().useMouseEvents&&this.removeHandlers(),this.distElement.remove(),this.wrapper.remove()}getDistElement(){return this.distElement}getWrapper(){return this.wrapper}setOrientationStyle(t){this.wrapper.classList.remove("--portrait","--landscape"),"portrait"===t?(this.app.getSettings().autoSize&&(this.wrapper.style.paddingBottom=this.app.getSettings().height/this.app.getSettings().width*100+"%"),this.wrapper.classList.add("--portrait")):(this.app.getSettings().autoSize&&(this.wrapper.style.paddingBottom=this.app.getSettings().height/(2*this.app.getSettings().width)*100+"%"),this.wrapper.classList.add("--landscape")),this.update()}removeHandlers(){window.removeEventListener("resize",this.onResize),this.distElement.removeEventListener("mousedown",this.onMouseDown),this.distElement.removeEventListener("touchstart",this.onTouchStart),window.removeEventListener("mousemove",this.onMouseMove),window.removeEventListener("touchmove",this.onTouchMove),window.removeEventListener("mouseup",this.onMouseUp),window.removeEventListener("touchend",this.onTouchEnd)}setHandlers(){window.addEventListener("resize",this.onResize,!1),this.app.getSettings().useMouseEvents&&(this.distElement.addEventListener("mousedown",this.onMouseDown),this.distElement.addEventListener("touchstart",this.onTouchStart),window.addEventListener("mousemove",this.onMouseMove),window.addEventListener("touchmove",this.onTouchMove,{passive:!this.app.getSettings().mobileScrollSupport}),window.addEventListener("mouseup",this.onMouseUp),window.addEventListener("touchend",this.onTouchEnd))}getMousePos(t,e){const i=this.distElement.getBoundingClientRect();return{x:t-i.left,y:e-i.top}}checkTarget(t){return!this.app.getSettings().clickEventForward||!["a","button"].includes(t.tagName.toLowerCase())}}class c extends p{constructor(t,e,i,s){super(t,e,i),this.wrapper.insertAdjacentHTML("afterbegin",'<div class="stf__block"></div>'),this.distElement=t.querySelector(".stf__block"),this.items=s;for(const t of s)this.distElement.appendChild(t);this.setHandlers()}clear(){for(const t of this.items)this.parentElement.appendChild(t)}updateItems(t){this.removeHandlers(),this.distElement.innerHTML="";for(const e of t)this.distElement.appendChild(e);this.items=t,this.setHandlers()}update(){this.app.getRender().update()}}class u extends p{constructor(t,e,i){super(t,e,i),this.wrapper.innerHTML='<canvas class="stf__canvas"></canvas>',this.canvas=t.querySelectorAll("canvas")[0],this.distElement=this.canvas,this.resizeCanvas(),this.setHandlers()}resizeCanvas(){const t=getComputedStyle(this.canvas),e=parseInt(t.getPropertyValue("width"),10),i=parseInt(t.getPropertyValue("height"),10);this.canvas.width=e,this.canvas.height=i}getCanvas(){return this.canvas}update(){this.resizeCanvas(),this.app.getRender().update()}}class w extends l{constructor(t,e,i){super(t,e),this.outerShadow=null,this.innerShadow=null,this.hardShadow=null,this.hardInnerShadow=null,this.element=i,this.createShadows()}createShadows(){this.element.insertAdjacentHTML("beforeend",'<div class="stf__outerShadow"></div>\n             <div class="stf__innerShadow"></div>\n             <div class="stf__hardShadow"></div>\n             <div class="stf__hardInnerShadow"></div>'),this.outerShadow=this.element.querySelector(".stf__outerShadow"),this.innerShadow=this.element.querySelector(".stf__innerShadow"),this.hardShadow=this.element.querySelector(".stf__hardShadow"),this.hardInnerShadow=this.element.querySelector(".stf__hardInnerShadow")}clearShadow(){super.clearShadow(),this.outerShadow.style.cssText="display: none",this.innerShadow.style.cssText="display: none",this.hardShadow.style.cssText="display: none",this.hardInnerShadow.style.cssText="display: none"}reload(){this.element.querySelector(".stf__outerShadow")||this.createShadows()}drawHardInnerShadow(){const t=this.getRect(),e=this.shadow.progress>100?200-this.shadow.progress:this.shadow.progress;let i=(100-e)*(2.5*t.pageWidth)/100+20;i>t.pageWidth&&(i=t.pageWidth);let s=`\n            display: block;\n            z-index: ${(this.getSettings().startZIndex+5).toString(10)};\n            width: ${i}px;\n            height: ${t.height}px;\n            background: linear-gradient(to right,\n                rgba(0, 0, 0, ${this.shadow.opacity*e/100}) 5%,\n                rgba(0, 0, 0, 0) 100%);\n            left: ${t.left+t.width/2}px;\n            transform-origin: 0 0;\n        `;s+=0===this.getDirection()&&this.shadow.progress>100||1===this.getDirection()&&this.shadow.progress<=100?"transform: translate3d(0, 0, 0);":"transform: translate3d(0, 0, 0) rotateY(180deg);",this.hardInnerShadow.style.cssText=s}drawHardOuterShadow(){const t=this.getRect();let e=(100-(this.shadow.progress>100?200-this.shadow.progress:this.shadow.progress))*(2.5*t.pageWidth)/100+20;e>t.pageWidth&&(e=t.pageWidth);let i=`\n            display: block;\n            z-index: ${(this.getSettings().startZIndex+4).toString(10)};\n            width: ${e}px;\n            height: ${t.height}px;\n            background: linear-gradient(to left, rgba(0, 0, 0, ${this.shadow.opacity}) 5%, rgba(0, 0, 0, 0) 100%);\n            left: ${t.left+t.width/2}px;\n            transform-origin: 0 0;\n        `;i+=0===this.getDirection()&&this.shadow.progress>100||1===this.getDirection()&&this.shadow.progress<=100?"transform: translate3d(0, 0, 0) rotateY(180deg);":"transform: translate3d(0, 0, 0);",this.hardShadow.style.cssText=i}drawInnerShadow(){const t=this.getRect(),e=3*this.shadow.width/4,i=0===this.getDirection()?e:0,s=0===this.getDirection()?"to left":"to right",n=this.convertToGlobal(this.shadow.pos),r=this.shadow.angle+3*Math.PI/2,o=[this.pageRect.topLeft,this.pageRect.topRight,this.pageRect.bottomRight,this.pageRect.bottomLeft];let a="polygon( ";for(const t of o){let e=1===this.getDirection()?{x:-t.x+this.shadow.pos.x,y:t.y-this.shadow.pos.y}:{x:t.x-this.shadow.pos.x,y:t.y-this.shadow.pos.y};e=h.GetRotatedPoint(e,{x:i,y:100},r),a+=e.x+"px "+e.y+"px, "}a=a.slice(0,-2),a+=")";const g=`\n            display: block;\n            z-index: ${(this.getSettings().startZIndex+10).toString(10)};\n            width: ${e}px;\n            height: ${2*t.height}px;\n            background: linear-gradient(${s},\n                rgba(0, 0, 0, ${this.shadow.opacity}) 5%,\n                rgba(0, 0, 0, 0.05) 15%,\n                rgba(0, 0, 0, ${this.shadow.opacity}) 35%,\n                rgba(0, 0, 0, 0) 100%);\n            transform-origin: ${i}px 100px;\n            transform: translate3d(${n.x-i}px, ${n.y-100}px, 0) rotate(${r}rad);\n            clip-path: ${a};\n            -webkit-clip-path: ${a};\n        `;this.innerShadow.style.cssText=g}drawOuterShadow(){const t=this.getRect(),e=this.convertToGlobal({x:this.shadow.pos.x,y:this.shadow.pos.y}),i=this.shadow.angle+3*Math.PI/2,s=1===this.getDirection()?this.shadow.width:0,n=0===this.getDirection()?"to right":"to left",r=[{x:0,y:0},{x:t.pageWidth,y:0},{x:t.pageWidth,y:t.height},{x:0,y:t.height}];let o="polygon( ";for(const t of r)if(null!==t){let e=1===this.getDirection()?{x:-t.x+this.shadow.pos.x,y:t.y-this.shadow.pos.y}:{x:t.x-this.shadow.pos.x,y:t.y-this.shadow.pos.y};e=h.GetRotatedPoint(e,{x:s,y:100},i),o+=e.x+"px "+e.y+"px, "}o=o.slice(0,-2),o+=")";const a=`\n            display: block;\n            z-index: ${(this.getSettings().startZIndex+10).toString(10)};\n            width: ${this.shadow.width}px;\n            height: ${2*t.height}px;\n            background: linear-gradient(${n}, rgba(0, 0, 0, ${this.shadow.opacity}), rgba(0, 0, 0, 0));\n            transform-origin: ${s}px 100px;\n            transform: translate3d(${e.x-s}px, ${e.y-100}px, 0) rotate(${i}rad);\n            clip-path: ${o};\n            -webkit-clip-path: ${o};\n        `;this.outerShadow.style.cssText=a}drawLeftPage(){"portrait"!==this.orientation&&null!==this.leftPage&&(1===this.direction&&null!==this.flippingPage&&"hard"===this.flippingPage.getDrawingDensity()?(this.leftPage.getElement().style.zIndex=(this.getSettings().startZIndex+5).toString(10),this.leftPage.setHardDrawingAngle(180+this.flippingPage.getHardAngle()),this.leftPage.draw(this.flippingPage.getDrawingDensity())):this.leftPage.simpleDraw(0))}drawRightPage(){null!==this.rightPage&&(0===this.direction&&null!==this.flippingPage&&"hard"===this.flippingPage.getDrawingDensity()?(this.rightPage.getElement().style.zIndex=(this.getSettings().startZIndex+5).toString(10),this.rightPage.setHardDrawingAngle(180+this.flippingPage.getHardAngle()),this.rightPage.draw(this.flippingPage.getDrawingDensity())):this.rightPage.simpleDraw(1))}drawBottomPage(){if(null===this.bottomPage)return;const t=null!=this.flippingPage?this.flippingPage.getDrawingDensity():null;"portrait"===this.orientation&&1===this.direction||(this.bottomPage.getElement().style.zIndex=(this.getSettings().startZIndex+3).toString(10),this.bottomPage.draw(t))}drawFrame(){this.clear(),this.drawLeftPage(),this.drawRightPage(),this.drawBottomPage(),null!=this.flippingPage&&(this.flippingPage.getElement().style.zIndex=(this.getSettings().startZIndex+5).toString(10),this.flippingPage.draw()),null!=this.shadow&&null!==this.flippingPage&&("soft"===this.flippingPage.getDrawingDensity()?(this.drawOuterShadow(),this.drawInnerShadow()):(this.drawHardOuterShadow(),this.drawHardInnerShadow()))}clear(){for(const t of this.app.getPageCollection().getPages())t!==this.leftPage&&t!==this.rightPage&&t!==this.flippingPage&&t!==this.bottomPage&&(t.getElement().style.cssText="display: none"),t.getTemporaryCopy()!==this.flippingPage&&t.hideTemporaryCopy()}update(){super.update(),null!==this.rightPage&&this.rightPage.setOrientation(1),null!==this.leftPage&&this.leftPage.setOrientation(0)}}class x{constructor(){this._default={startPage:0,size:"fixed",width:0,height:0,minWidth:0,maxWidth:0,minHeight:0,maxHeight:0,drawShadow:!0,flippingTime:1e3,usePortrait:!0,startZIndex:0,autoSize:!0,maxShadowOpacity:1,showCover:!1,mobileScrollSupport:!0,swipeDistance:30,clickEventForward:!0,useMouseEvents:!0,showPageCorners:!0,disableFlipByClick:!1}}getSettings(t){const e=this._default;if(Object.assign(e,t),"stretch"!==e.size&&"fixed"!==e.size)throw new Error('Invalid size type. Available only "fixed" and "stretch" value');if(e.width<=0||e.height<=0)throw new Error("Invalid width or height");if(e.flippingTime<=0)throw new Error("Invalid flipping time");return"stretch"===e.size?(e.minWidth<=0&&(e.minWidth=100),e.maxWidth<e.minWidth&&(e.maxWidth=2e3),e.minHeight<=0&&(e.minHeight=100),e.maxHeight<e.minHeight&&(e.maxHeight=2e3)):(e.minWidth=e.width,e.maxWidth=e.width,e.minHeight=e.height,e.maxHeight=e.height),e}}!function(t,e){void 0===e&&(e={});var i=e.insertAt;if(t&&"undefined"!=typeof document){var s=document.head||document.getElementsByTagName("head")[0],n=document.createElement("style");n.type="text/css","top"===i&&s.firstChild?s.insertBefore(n,s.firstChild):s.appendChild(n),n.styleSheet?n.styleSheet.cssText=t:n.appendChild(document.createTextNode(t))}}(".stf__parent {\n  position: relative;\n  display: block;\n  box-sizing: border-box;\n  transform: translateZ(0);\n\n  -ms-touch-action: pan-y;\n  touch-action: pan-y;\n}\n\n.sft__wrapper {\n  position: relative;\n  width: 100%;\n  box-sizing: border-box;\n}\n\n.stf__parent canvas {\n  position: absolute;\n  width: 100%;\n  height: 100%;\n  left: 0;\n  top: 0;\n}\n\n.stf__block {\n  position: absolute;\n  width: 100%;\n  height: 100%;\n  box-sizing: border-box;\n  perspective: 2000px;\n}\n\n.stf__item {\n  display: none;\n  position: absolute;\n  transform-style: preserve-3d;\n}\n\n.stf__outerShadow {\n  position: absolute;\n  left: 0;\n  top: 0;\n}\n\n.stf__innerShadow {\n  position: absolute;\n  left: 0;\n  top: 0;\n}\n\n.stf__hardShadow {\n  position: absolute;\n  left: 0;\n  top: 0;\n}\n\n.stf__hardInnerShadow {\n  position: absolute;\n  left: 0;\n  top: 0;\n}");t.PageFlip=class extends class{constructor(){this.events=new Map}on(t,e){return this.events.has(t)?this.events.get(t).push(e):this.events.set(t,[e]),this}off(t){this.events.delete(t)}trigger(t,e,i=null){if(this.events.has(t))for(const s of this.events.get(t))s({data:i,object:e})}}{constructor(t,e){super(),this.isUserTouch=!1,this.isUserMove=!1,this.setting=null,this.pages=null,this.setting=(new x).getSettings(e),this.block=t}destroy(){this.ui.destroy(),this.block.remove()}update(){this.render.update(),this.pages.show()}loadFromImages(t){this.ui=new u(this.block,this,this.setting);const e=this.ui.getCanvas();this.render=new d(this,this.setting,e),this.flipController=new g(this.render,this),this.pages=new n(this,this.render,t),this.pages.load(),this.render.start(),this.pages.show(this.setting.startPage),setTimeout(()=>{this.ui.update(),this.trigger("init",this,{page:this.setting.startPage,mode:this.render.getOrientation()})},1)}loadFromHTML(t){this.ui=new c(this.block,this,this.setting,t),this.render=new w(this,this.setting,this.ui.getDistElement()),this.flipController=new g(this.render,this),this.pages=new o(this,this.render,this.ui.getDistElement(),t),this.pages.load(),this.render.start(),this.pages.show(this.setting.startPage),setTimeout(()=>{this.ui.update(),this.trigger("init",this,{page:this.setting.startPage,mode:this.render.getOrientation()})},1)}updateFromImages(t){const e=this.pages.getCurrentPageIndex();this.pages.destroy(),this.pages=new n(this,this.render,t),this.pages.load(),this.pages.show(e),this.trigger("update",this,{page:e,mode:this.render.getOrientation()})}updateFromHtml(t){const e=this.pages.getCurrentPageIndex();this.pages.destroy(),this.pages=new o(this,this.render,this.ui.getDistElement(),t),this.pages.load(),this.ui.updateItems(t),this.render.reload(),this.pages.show(e),this.trigger("update",this,{page:e,mode:this.render.getOrientation()})}clear(){this.pages.destroy(),this.ui.clear()}turnToPrevPage(){this.pages.showPrev()}turnToNextPage(){this.pages.showNext()}turnToPage(t){this.pages.show(t)}flipNext(t="top"){this.flipController.flipNext(t)}flipPrev(t="top"){this.flipController.flipPrev(t)}flip(t,e="top"){this.flipController.flipToPage(t,e)}updateState(t){this.trigger("changeState",this,t)}updatePageIndex(t){this.trigger("flip",this,t)}updateOrientation(t){this.ui.setOrientationStyle(t),this.update(),this.trigger("changeOrientation",this,t)}getPageCount(){return this.pages.getPageCount()}getCurrentPageIndex(){return this.pages.getCurrentPageIndex()}getPage(t){return this.pages.getPage(t)}getRender(){return this.render}getFlipController(){return this.flipController}getOrientation(){return this.render.getOrientation()}getBoundsRect(){return this.render.getRect()}getSettings(){return this.setting}getUI(){return this.ui}getState(){return this.flipController.getState()}getPageCollection(){return this.pages}startUserTouch(t){this.mousePosition=t,this.isUserTouch=!0,this.isUserMove=!1}userMove(t,e){this.isUserTouch||e||!this.setting.showPageCorners?this.isUserTouch&&h.GetDistanceBetweenTwoPoint(this.mousePosition,t)>5&&(this.isUserMove=!0,this.flipController.fold(t)):this.flipController.showCorner(t)}userStop(t,e=!1){this.isUserTouch&&(this.isUserTouch=!1,e||(this.isUserMove?this.flipController.stopMove():this.flipController.flip(t)))}},Object.defineProperty(t,"__esModule",{value:!0})}));
+
+</script>
+<script>
 (function(){
   var CH=[{"a": "ch1", "full": "Chapter 1 — The Gilded Age: Wealth and Its Cost", "short": "The Gilded Age: Wealth and Its Cost"}, {"a": "ch2", "full": "Chapter 2 — Robber Barons and Captains of Industry", "short": "Robber Barons and Captains of Industry"}, {"a": "ch3", "full": "Chapter 3 — The Golden Door: Immigrants in a New Land", "short": "The Golden Door: Immigrants in a New Land"}, {"a": "ch4", "full": "Chapter 4 — Fear and Exclusion", "short": "Fear and Exclusion"}, {"a": "ch5", "full": "Chapter 5 — Life in the Industrial City", "short": "Life in the Industrial City"}, {"a": "ch6", "full": "Chapter 6 — Strikes and Solidarity", "short": "Strikes and Solidarity"}, {"a": "ch7", "full": "Chapter 7 — Voices for Reform", "short": "Voices for Reform"}, {"a": "ch8", "full": "Chapter 8 — Democracy Expanding and Contracting", "short": "Democracy Expanding and Contracting"}, {"a": "ch9", "full": "Chapter 9 — Seventy-Two Years: The Fight for Suffrage", "short": "Seventy-Two Years: The Fight for Suffrage"}, {"a": "ch10", "full": "Chapter 10 — Whose Voices Were Left Out?", "short": "Whose Voices Were Left Out?"}];
-  var flow=document.getElementById('flow'), vp=document.getElementById('vp'), book=document.getElementById('book');
-  var rhL=document.getElementById('rhL'), rhR=document.getElementById('rhR'), pnL=document.getElementById('pnL'), pnR=document.getElementById('pnR');
-  var prog=document.getElementById('prog');
-  var GUT=58, MH=40, MV=42, baseFS=19, colW=520, pageH=700, spread=0, spreads=1, step=577;
-  var chapCols=[];                 // [{col, short}]
+  var PW=500,PH=680,PADX=46,PADY=48,CHc=PH-2*PADY;
+  var book=document.getElementById('book'), src=document.getElementById('src');
+  var scaler=document.getElementById('scaler'), vp=document.getElementById('viewport');
+  var flip=null, chapterPage={}, pageHdr=[], totalPages=0, zoomMul=1;
   var BMKEY='u3flip::bm', bm=loadBM();
+  function el(cls,html){var d=document.createElement('div'); if(cls)d.className=cls; if(html!=null)d.innerHTML=html; return d;}
+  function loadBM(){try{return JSON.parse(localStorage.getItem(BMKEY))||[];}catch(e){return [];}}
+  function saveBM(){try{localStorage.setItem(BMKEY,JSON.stringify(bm));}catch(e){}}
 
-  function px(v){return v+'px';}
-  function loadBM(){ try{return JSON.parse(localStorage.getItem(BMKEY))||[];}catch(e){return [];} }
-  function saveBM(){ try{localStorage.setItem(BMKEY,JSON.stringify(bm));}catch(e){} }
-
-  function layout(keepAnchor){
-    var anchorEl = keepAnchor ? firstVisibleBlock() : null;
-    var vw=innerWidth, vh=innerHeight;
-    pageH = Math.max(360, Math.min(vh-150, 860));
-    colW  = Math.max(240, Math.min(Math.floor((vw-2*MH-GUT-24)/2), 560));
-    step  = colW+GUT;
-    var root=document.documentElement.style;
-    root.setProperty('--ph',px(pageH)); root.setProperty('--mh',px(MH)); root.setProperty('--mv',px(MV)); root.setProperty('--fs',baseFS+'px');
-    book.style.width=px(2*colW+GUT+2*MH); book.style.height=px(pageH+2*MV);
-    vp.style.width=px(2*colW+GUT); vp.style.height=px(pageH);
-    flow.style.columnWidth=px(colW); flow.style.columnGap=px(GUT);
-    // position furniture over each page, inside the cream margins
-    var topY=(MV-14)/2, botY=(MV-14)/2;
-    [[rhL,MH],[pnL,MH]].forEach(function(p){p[0].style.left=px(p[1]); p[0].style.width=px(colW);});
-    [[rhR],[pnR]].forEach(function(){});
-    rhL.style.left=px(MH); rhR.style.left=px(MH+colW+GUT); pnL.style.left=px(MH); pnR.style.left=px(MH+colW+GUT);
-    [rhL,rhR].forEach(function(e){e.style.width=px(colW); e.style.top=px(topY);});
-    [pnL,pnR].forEach(function(e){e.style.width=px(colW); e.style.bottom=px(botY);});
-    flow.style.transition='none'; flow.style.transform='translateX(0)';
-    requestAnimationFrame(function(){
-      var cols=Math.max(1, Math.round((flow.scrollWidth+GUT)/step));
-      spreads=Math.max(1, Math.ceil(cols/2)); window.__cols=cols;
-      chapCols=CH.map(function(c){var el=document.getElementById(c.a); return {col: el?colOf(el):0, short:c.short, a:c.a};});
-      if(anchorEl) spread=Math.floor(colOf(anchorEl)/2);
-      spread=Math.min(spread, spreads-1);
-      renderBM();
-      requestAnimationFrame(function(){ flow.style.transition=''; go(spread,true); });
+  // ---- pagination ----
+  var pages=[], curContent=null, pageNum=0, curChapShort='';
+  function newPage(opts){
+    opts=opts||{};
+    var p=el('page'+(opts.cls?(' '+opts.cls):'')); var pg=el('pg');
+    var rh=el('rh'), content=el('content'), pn=el('pn');
+    if(!opts.cls){ rh.textContent=curChapShort||''; pageNum++; pn.textContent=String(pageNum); }
+    pg.appendChild(rh); pg.appendChild(content); pg.appendChild(pn); p.appendChild(pg);
+    book.appendChild(p); pages.push(p);
+    pageHdr.push(opts.cls?'':curChapShort);
+    curContent=opts.cls?pg.querySelector('.content'):content;  // for cover/colophon put content in .content too
+    return p;
+  }
+  function fits(){ return curContent.scrollHeight <= CHc-14; }
+  function lastIsHeading(){ var c=curContent.lastElementChild; return c && (c.tagName==='H2'||c.tagName==='H3'||c.classList.contains('kick')||c.classList.contains('sub')||c.classList.contains('scene')); }
+  function addWhole(node){
+    curContent.appendChild(node);
+    if(!fits() && curContent.childNodes.length>1){ curContent.removeChild(node); newPage(); curContent.appendChild(node); }
+  }
+  function addSplit(node){
+    var tag=node.tagName.toLowerCase(), cls=node.className, words=(node.textContent||'').split(/\s+/).filter(Boolean);
+    if(!words.length) return;
+    var cur=document.createElement(tag); if(cls)cur.className=cls; curContent.appendChild(cur); var buf='';
+    for(var i=0;i<words.length;i++){
+      var prev=buf; buf=buf?(buf+' '+words[i]):words[i]; cur.textContent=buf;
+      if(!fits()){
+        if(prev!==''){ cur.textContent=prev; newPage(); cur=document.createElement(tag); if(cls)cur.className=cls; curContent.appendChild(cur); buf=words[i]; cur.textContent=buf; }
+        else if(curContent.childNodes.length>1){ // first word won't fit: carry any orphan heading(s) to next page
+          curContent.removeChild(cur); var carried=[];
+          while(lastIsHeading()){ carried.unshift(curContent.lastElementChild); curContent.removeChild(curContent.lastElementChild); }
+          newPage(); carried.forEach(function(h){ curContent.appendChild(h); });
+          cur=document.createElement(tag); if(cls)cur.className=cls; curContent.appendChild(cur); buf=words[i]; cur.textContent=buf;
+        }
+      }
+    }
+  }
+  function addBlock(node){ if(node.tagName==='P'||node.classList.contains('epi')) addSplit(node); else addWhole(node); }
+  function buildCover(){
+    var p=newPage({cls:'cover'});
+    curContent.innerHTML='<div class="k">PROMISE &amp; PRACTICE &middot; UNIT 3</div><h1>Industry, Immigration &amp; Reform</h1><div class="yr">1877 &ndash; 1919</div>'+
+      '<div class="mk"><svg width="118" height="76" viewBox="0 0 120 78" fill="none"><g stroke="#1F3A5F" stroke-width="2.4"><rect x="10" y="40" width="16" height="30"/><rect x="30" y="28" width="16" height="42"/><rect x="50" y="18" width="16" height="52"/><rect x="74" y="34" width="14" height="36"/><rect x="92" y="24" width="16" height="46"/></g><circle cx="100" cy="16" r="9" stroke="#C9A227" stroke-width="2.4"/><path d="M100 7v-4M100 29v-4M89 16h-4M115 16h-4M92.2 8.2l-2.8-2.8M110.6 26.6l-2.8-2.8M92.2 23.8l-2.8 2.8M110.6 5.4l-2.8 2.8" stroke="#C9A227" stroke-width="2"/></svg></div>'+
+      '<div class="ft">An American history, told close to home</div>';
+  }
+  function buildColophon(){
+    var p=newPage({cls:'colophon'});
+    curContent.innerHTML='<h4>ShadowDog Digital Studios</h4><p>Promise &amp; Practice &middot; Unit 3 &mdash; Industry, Immigration &amp; Reform</p>'+
+      '<p>&copy; 2026 ShadowDog Digital Studios. All Rights Reserved. ShadowDog Digital Studios holds explicit rights to the design, text, and arrangement of this material. Historical images are public domain and credited to their sources.</p>';
+  }
+  function paginate(){
+    buildCover();
+    curChapShort=''; newPage();
+    var blocks=[].slice.call(src.children);
+    blocks.forEach(function(b){
+      if(b.id && /^ch\d+$/.test(b.id)){ // chapter kick: start new page, set running header
+        var c=CH.filter(function(x){return x.a===b.id;})[0];
+        curChapShort = c?c.short:curChapShort;
+        if(curContent.childNodes.length>0) newPage();
+        chapterPage[b.id]=pages.length-1;
+      }
+      addBlock(b.cloneNode(true));
     });
+    buildColophon();
+    totalPages=pages.length;
   }
-  function colOf(el){
-    var pt=flow.style.transition, px0=flow.style.transform;
-    flow.style.transition='none'; flow.style.transform='translateX(0)';
-    var x=el.getBoundingClientRect().left - flow.getBoundingClientRect().left;
-    flow.style.transform=px0; flow.style.transition=pt;
-    return Math.max(0,Math.round(x/step));
-  }
-  function firstVisibleBlock(){ var kids=flow.children; for(var i=0;i<kids.length;i++){ if(Math.floor(colOf(kids[i])/2)>=spread) return kids[i]; } return kids[0]; }
-  function headerFor(col){ var h=''; for(var i=0;i<chapCols.length;i++){ if(chapCols[i].col<=col) h=chapCols[i].short; } return h; }
-  function go(s,instant){
-    spread=Math.max(0,Math.min(s,spreads-1));
-    if(instant) flow.style.transition='none';
-    flow.style.transform='translateX('+(-(spread)*2*step)+'px)';
-    if(instant) requestAnimationFrame(function(){flow.style.transition='';});
-    var total=window.__cols||2, last=total-1;
-    var lc=spread*2, rc=spread*2+1;
-    function lbl(c){ return (c<=0 || c>=last) ? '' : String(c); }
-    pnL.textContent=lbl(lc); pnR.textContent=lbl(rc);
-    rhL.textContent = lc<=0 ? '' : headerFor(lc);
-    rhR.textContent = rc>=last ? '' : headerFor(rc);
-    document.getElementById('pg').innerHTML = 'Page ' + (rc>=last? (last-1) : Math.max(lc, rc)) + ' / ' + (last-1);
-    prog.style.width = ((spread)/(Math.max(1,spreads-1))*100) + '%';
-    var star=document.getElementById('bstar'); star.classList.toggle('marked', bm.indexOf(spread)>=0); star.innerHTML = bm.indexOf(spread)>=0?'&#9733;':'&#9734;';
-  }
-  function next(){ if(spread<spreads-1) go(spread+1); }
-  function prev(){ if(spread>0) go(spread-1); }
 
-  document.getElementById('bnext').onclick=next; document.getElementById('bprev').onclick=prev;
+  // ---- init StPageFlip ----
+  function initFlip(startIdx){
+    var portrait = innerWidth < 760;
+    flip=new St.PageFlip(book,{width:PW,height:PH,size:'fixed',maxShadowOpacity:.5,showCover:true,drawShadow:true,flippingTime:650,usePortrait:portrait,autoSize:false});
+    flip.loadFromHTML(book.querySelectorAll('.page'));
+    flip.on('flip', function(){ upd(); });
+    flip.on('changeState', function(){});
+    applyZoom(); upd();
+    if(startIdx>0){ try{flip.turnToPage(Math.min(startIdx,flip.getPageCount()-1));}catch(e){} }
+  }
+  function curIdx(){ try{return flip.getCurrentPageIndex();}catch(e){return 0;} }
+  function upd(){
+    var i=curIdx(), n=totalPages;
+    document.getElementById('pc').textContent='Page '+(i+1)+' / '+n;
+    document.getElementById('prog').style.width=((i)/(Math.max(1,n-1))*100)+'%';
+    var star=document.getElementById('bstar'); var on=bm.indexOf(i)>=0; star.classList.toggle('marked',on); star.innerHTML=on?'&#9733;':'&#9734;';
+    try{localStorage.setItem('u3flip::idx',String(i));}catch(e){}
+  }
+  function applyZoom(){
+    var spreadW = (innerWidth<760? PW : 2*PW), spreadH=PH;
+    var fit=Math.min((innerWidth*0.97)/spreadW, (innerHeight-128)/spreadH);
+    var scale=fit*zoomMul;
+    scaler.style.transform='scale('+scale+')';
+    document.getElementById('zl').textContent=Math.round(zoomMul*100)+'%';
+  }
+
+  // ---- nav ----
+  document.getElementById('bnext').onclick=function(){ try{flip.flipNext();}catch(e){} };
+  document.getElementById('bprev').onclick=function(){ try{flip.flipPrev();}catch(e){} };
   addEventListener('keydown',function(e){
+    if(e.key==='Escape'){ closeP(); return; }
     if(e.target.tagName==='INPUT')return;
-    if(e.key==='ArrowRight'||e.key==='PageDown'){next();}
-    else if(e.key==='ArrowLeft'||e.key==='PageUp'){prev();}
-    else if(e.key==='Home'){go(0);} else if(e.key==='End'){go(spreads-1);}
-  });
+    if(e.key==='ArrowRight'||e.key==='PageDown'){try{flip.flipNext();}catch(_){}}
+    else if(e.key==='ArrowLeft'||e.key==='PageUp'){try{flip.flipPrev();}catch(_){}}
+    else if(e.key==='Home'){try{flip.turnToPage(0);upd();}catch(_){}}
+    else if(e.key==='End'){try{flip.turnToPage(totalPages-1);upd();}catch(_){}} });
+  setTimeout(function(){var h=document.getElementById('hint'); if(h)h.style.opacity='0';},5200);
+  addEventListener('resize',function(){ clearTimeout(window.__rt); window.__rt=setTimeout(applyZoom,150); });
 
-  // drag + tap to turn
-  var dsx=null, dragging=false, baseTX=0, moved=0;
-  vp.addEventListener('pointerdown',function(e){ dsx=e.clientX; baseTX=-spread*2*step; dragging=true; moved=0; flow.style.transition='none'; try{vp.setPointerCapture(e.pointerId);}catch(_){} });
-  vp.addEventListener('pointermove',function(e){ if(!dragging)return; var dx=e.clientX-dsx; moved=Math.abs(dx);
-     var tx=baseTX+dx*0.9;
-     var minTX=-(spreads-1)*2*step, maxTX=0;
-     if(tx>maxTX) tx=maxTX+(tx-maxTX)*0.3; if(tx<minTX) tx=minTX+(tx-minTX)*0.3;
-     flow.style.transform='translateX('+tx+'px)'; });
-  function endDrag(e){ if(!dragging)return; dragging=false; flow.style.transition=''; var dx=(e.clientX||dsx)-dsx;
-     if(moved<8){ var r=vp.getBoundingClientRect(); var rel=(e.clientX-r.left)/r.width; if(rel<0.4) prev(); else if(rel>0.6) next(); else go(spread); return; }
-     var th=colW*0.22; if(dx<=-th) next(); else if(dx>=th) prev(); else go(spread); }
-  vp.addEventListener('pointerup',endDrag); vp.addEventListener('pointercancel',endDrag);
-
-  setTimeout(function(){var h=document.getElementById('hint'); if(h) h.style.opacity='0';},4600);
-
-  // panels
+  // ---- panels ----
   var shade=document.getElementById('shade');
   function openP(id){ closeP(); document.getElementById(id).classList.add('open'); shade.classList.add('on'); }
   function closeP(){ document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('open');}); shade.classList.remove('on'); }
@@ -714,83 +746,71 @@
   document.getElementById('bsearch').onclick=function(){openP('search');setTimeout(function(){document.getElementById('sq').focus();},120);};
   shade.onclick=closeP; document.querySelectorAll('[data-close]').forEach(function(b){b.onclick=closeP;});
   document.querySelectorAll('#toc a[data-anchor]').forEach(function(a){
-    a.onclick=function(e){e.preventDefault();var el=document.getElementById(a.dataset.anchor); if(el){ go(Math.floor(colOf(el)/2)); closeP(); }};
+    a.onclick=function(e){e.preventDefault(); var pg=chapterPage[a.dataset.anchor]; if(pg!=null){ try{flip.turnToPage(pg);upd();}catch(_){} closeP(); }};
   });
 
-  // bookmarks
-  function renderBM(){
-    var ol=document.getElementById('bmlist'); ol.innerHTML='';
-    bm.slice().sort(function(a,b){return a-b;}).forEach(function(s){
-      var li=document.createElement('li'), a=document.createElement('a'); a.href='#';
-      a.innerHTML='<span style="color:var(--gold)">&#9733;</span> &nbsp;Page '+(s*2+1);
-      a.onclick=function(e){e.preventDefault(); go(s); closeP();};
-      li.appendChild(a); ol.appendChild(li);
-    });
-  }
-  document.getElementById('bstar').onclick=function(){
-    var i=bm.indexOf(spread); if(i>=0) bm.splice(i,1); else bm.push(spread);
-    saveBM(); renderBM(); go(spread);
-  };
+  // ---- bookmarks ----
+  function renderBM(){ var ol=document.getElementById('bmlist'); ol.innerHTML='';
+    bm.slice().sort(function(a,b){return a-b;}).forEach(function(i){ var li=document.createElement('li'), a=document.createElement('a'); a.href='#';
+      a.innerHTML='<span style="color:var(--gold)">&#9733;</span> &nbsp;Page '+(i+1);
+      a.onclick=function(e){e.preventDefault(); try{flip.turnToPage(i);upd();}catch(_){} closeP();}; li.appendChild(a); ol.appendChild(li); }); }
+  document.getElementById('bstar').onclick=function(){ var i=curIdx(), k=bm.indexOf(i); if(k>=0)bm.splice(k,1); else bm.push(i); saveBM(); renderBM(); upd(); };
 
-  // search
-  function clearHL(){ flow.querySelectorAll('mark.hl').forEach(function(m){var t=document.createTextNode(m.textContent); var p=m.parentNode; p.replaceChild(t,m); p.normalize&&p.normalize();}); }
+  // ---- search ----
   function esc(s){return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}
+  function clearHL(){ book.querySelectorAll('mark.hl').forEach(function(m){var t=document.createTextNode(m.textContent);var p=m.parentNode;p.replaceChild(t,m);p.normalize&&p.normalize();}); }
+  function pageIndexOf(node){ var pgEl=node.closest? node.closest('.page') : null; if(!pgEl) return 0; var all=book.querySelectorAll('.page'); for(var i=0;i<all.length;i++){ if(all[i]===pgEl) return i; } return 0; }
   function doSearch(){
     var q=document.getElementById('sq').value.trim(), res=document.getElementById('sres'), hits=document.getElementById('shits');
-    hits.innerHTML=''; clearHL();
-    if(q.length<2){ res.textContent='Type at least two letters.'; return; }
-    var rx=new RegExp(esc(q),'gi'), walker=document.createTreeWalker(flow,NodeFilter.SHOW_TEXT,null), nodes=[], n;
-    while(n=walker.nextNode()){ if(n.nodeValue && n.nodeValue.toLowerCase().indexOf(q.toLowerCase())>=0) nodes.push(n); }
+    hits.innerHTML=''; clearHL(); if(q.length<2){res.textContent='Type at least two letters.';return;}
+    var rx=new RegExp(esc(q),'gi'), walker=document.createTreeWalker(book,NodeFilter.SHOW_TEXT,null), nodes=[], n;
+    while(n=walker.nextNode()){ if(n.parentNode && n.parentNode.closest('.content') && n.nodeValue && n.nodeValue.toLowerCase().indexOf(q.toLowerCase())>=0) nodes.push(n); }
     var count=0, first=null;
-    nodes.forEach(function(node){
-      var frag=document.createDocumentFragment(), s=node.nodeValue, last=0, mm; rx.lastIndex=0;
-      while(mm=rx.exec(s)){ frag.appendChild(document.createTextNode(s.slice(last,mm.index)));
-        var mk=document.createElement('mark'); mk.className='hl'; mk.textContent=mm[0]; frag.appendChild(mk);
-        if(!first) first=mk; last=mm.index+mm[0].length; count++; if(mm[0].length===0) rx.lastIndex++; }
-      frag.appendChild(document.createTextNode(s.slice(last))); node.parentNode.replaceChild(frag,node);
-    });
+    nodes.forEach(function(node){ var frag=document.createDocumentFragment(), s=node.nodeValue, last=0, mm; rx.lastIndex=0;
+      while(mm=rx.exec(s)){ frag.appendChild(document.createTextNode(s.slice(last,mm.index))); var mk=document.createElement('mark'); mk.className='hl'; mk.textContent=mm[0]; frag.appendChild(mk); if(!first)first=mk; last=mm.index+mm[0].length; count++; if(mm[0].length===0)rx.lastIndex++; }
+      frag.appendChild(document.createTextNode(s.slice(last))); node.parentNode.replaceChild(frag,node); });
     if(!count){ res.innerHTML='No matches for “'+q+'”.'; return; }
     res.innerHTML='<b>'+count+'</b> match'+(count===1?'':'es')+' for “'+q+'”.';
-    var marks=[].slice.call(flow.querySelectorAll('mark.hl'));
-    marks.slice(0,40).forEach(function(mk){
-      var col=colOf(mk), sp=Math.floor(col/2), li=document.createElement('li');
+    var marks=[].slice.call(book.querySelectorAll('mark.hl'));
+    marks.slice(0,40).forEach(function(mk){ var pi=pageIndexOf(mk), li=document.createElement('li');
       var ctx=(mk.parentNode.textContent||'').replace(/\s+/g,' '); var idx=ctx.toLowerCase().indexOf(q.toLowerCase());
-      var snip=idx<0?ctx.slice(0,60):ctx.slice(Math.max(0,idx-26),idx+q.length+34);
+      var snip=idx<0?ctx.slice(0,60):ctx.slice(Math.max(0,idx-24),idx+q.length+32);
       var a=document.createElement('a'); a.href='#';
-      a.innerHTML='<span style="color:var(--accent2);font:700 11px var(--sans)">p.'+col+'</span> &nbsp;&hellip;'+snip.replace(new RegExp('('+esc(q)+')','ig'),'<mark class=hl>$1</mark>')+'&hellip;';
-      a.onclick=function(e){e.preventDefault(); go(sp); flash(mk); closeP();};
-      li.appendChild(a); hits.appendChild(li);
-    });
-    go(Math.floor(colOf(first)/2));
+      a.innerHTML='<span style="color:var(--accent2);font:700 11px var(--sans)">p.'+(pi+1)+'</span> &nbsp;&hellip;'+snip.replace(new RegExp('('+esc(q)+')','ig'),'<mark class=hl>$1</mark>')+'&hellip;';
+      a.onclick=function(e){e.preventDefault(); try{flip.turnToPage(pi);upd();}catch(_){} flash(mk); closeP();}; li.appendChild(a); hits.appendChild(li); });
+    try{flip.turnToPage(pageIndexOf(first));upd();}catch(_){}
   }
-  function flash(el){ el.classList.add('reading'); setTimeout(function(){el.classList.remove('reading');},1600); }
+  function flash(el){ el.classList.add('reading'); setTimeout(function(){el.classList.remove('reading');},1700); }
   document.getElementById('sgo').onclick=doSearch;
-  document.getElementById('sq').addEventListener('keydown',function(e){ if(e.key==='Enter') doSearch(); });
+  document.getElementById('sq').addEventListener('keydown',function(e){ if(e.key==='Enter')doSearch(); });
 
-  // font size
-  document.getElementById('bplus').onclick=function(){ baseFS=Math.min(26,baseFS+1); layout(true); };
-  document.getElementById('bminus').onclick=function(){ baseFS=Math.max(15,baseFS-1); layout(true); };
-  document.getElementById('bfit').onclick=function(){ baseFS=19; layout(true); };
+  // ---- zoom ----
+  document.getElementById('bplus').onclick=function(){ zoomMul=Math.min(2,zoomMul+0.1); applyZoom(); };
+  document.getElementById('bminus').onclick=function(){ zoomMul=Math.max(0.5,zoomMul-0.1); applyZoom(); };
+  document.getElementById('bfit').onclick=function(){ zoomMul=1; applyZoom(); };
 
-  // listen (TTS, auto page-turn)
-  var speaking=false, blocks=[], btn=document.getElementById('blisten');
+  // ---- listen (TTS) ----
+  var speaking=false, btn=document.getElementById('blisten');
   function stopListen(){ speaking=false; try{speechSynthesis.cancel();}catch(e){} btn.classList.remove('on'); btn.innerHTML='&#9658; <span class="lbl">Listen</span>'; }
-  function speakFrom(i){ if(!speaking)return; if(i>=blocks.length){stopListen();return;}
-    var el=blocks[i], txt=(el.textContent||'').replace(/\s+/g,' ').trim(); if(!txt){speakFrom(i+1);return;}
-    var sp=Math.floor(colOf(el)/2); if(sp!==spread) go(sp);
+  function pageText(i){ var all=book.querySelectorAll('.page'); if(!all[i])return ''; var c=all[i].querySelector('.content'); return c?(c.textContent||'').replace(/\s+/g,' ').trim():''; }
+  function speakPage(i){ if(!speaking)return; if(i>=totalPages){stopListen();return;}
+    if(i!==curIdx()){ try{flip.turnToPage(i);upd();}catch(e){} }
+    var txt=pageText(i); if(!txt){ speakPage(i+1); return; }
     var u=new SpeechSynthesisUtterance(txt); u.rate=.98;
-    u.onend=function(){ if(speaking) speakFrom(i+1); }; u.onerror=function(){ if(speaking) speakFrom(i+1); };
+    u.onend=function(){ if(speaking) speakPage(i+1); }; u.onerror=function(){ if(speaking) speakPage(i+1); };
     try{speechSynthesis.speak(u);}catch(e){stopListen();} }
-  btn.onclick=function(){ if(!('speechSynthesis' in window)){btn.innerHTML='Listen N/A';return;}
-    if(speaking){stopListen();return;}
-    blocks=[].slice.call(flow.children).filter(function(el){return !el.classList.contains('cover');});
-    var start=0; for(var i=0;i<blocks.length;i++){ if(Math.floor(colOf(blocks[i])/2)>=spread){start=i;break;} }
-    speaking=true; btn.classList.add('on'); btn.innerHTML='&#9632; <span class="lbl">Stop</span>'; speakFrom(start); };
+  btn.onclick=function(){ if(!('speechSynthesis' in window)){btn.innerHTML='Listen N/A';return;} if(speaking){stopListen();return;}
+    speaking=true; btn.classList.add('on'); btn.innerHTML='&#9632; <span class="lbl">Stop</span>'; speakPage(curIdx()); };
   addEventListener('beforeunload',stopListen);
 
-  addEventListener('resize',function(){ clearTimeout(window.__rt); window.__rt=setTimeout(function(){layout(true);},180); });
-  if(document.fonts && document.fonts.ready){ document.fonts.ready.then(function(){layout(false);}); }
-  layout(false); setTimeout(function(){layout(false);},300);
+  // ---- go ----
+  function boot(){
+    paginate();
+    var startIdx=0; var mh=(location.hash||'').match(/^#p(\d+)/); if(mh){ startIdx=(parseInt(mh[1],10)||1)-1; }
+    else { try{ var sv=parseInt(localStorage.getItem('u3flip::idx'),10); if(sv>0) startIdx=sv; }catch(e){} }
+    initFlip(startIdx); renderBM();
+  }
+  if(document.fonts && document.fonts.ready){ document.fonts.ready.then(boot); } else { boot(); }
 })();
 </script>
 </body>
